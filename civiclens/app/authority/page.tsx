@@ -6,7 +6,7 @@ import {
   MessageSquare, AlertTriangle, Eye, Map as MapIcon, ShieldAlert, 
   User, ChevronRight, TrendingUp, TrendingDown, CheckCircle, 
   MessageCircle, LogOut, Shield
-} from 'lucide-react';
+} from "lucide-react";
 import { useAuth } from '../../contexts/AuthContext';
 import { SettingsContent } from '../../components/SettingsContent';
 import { DashboardHeader } from '../../components/DashboardHeader';
