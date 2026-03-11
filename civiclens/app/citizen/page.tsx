@@ -527,7 +527,24 @@ const AnalyticsTab: React.FC = () => (
     </div>
   </div>
 );
-const OverviewTab: React.FC<LucideIcon> = ({ user, locationName, isFetchingLocation, setShowSettings, setShowProjects, setShowAuthority, setActiveTab }) => (
+interface OverviewTabProps {
+  user: ReturnType<typeof useAuth>['user'];   
+  locationName: string;
+  isFetchingLocation: boolean;
+  setShowSettings: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowProjects: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowAuthority: React.Dispatch<React.SetStateAction<boolean>>;
+  setActiveTab: React.Dispatch<React.SetStateAction<Tab>>;
+}
+const OverviewTab: React.FC<OverviewTabProps> = ({
+  user,
+  locationName,
+  isFetchingLocation,
+  setShowSettings,    
+  setShowProjects,
+  setShowAuthority,
+  setActiveTab,
+}) => (
   <>
     {/* Welcome Header */}
     <div className="space-y-4">

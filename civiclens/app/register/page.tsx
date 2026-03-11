@@ -1,6 +1,7 @@
 'use client'
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { MapPin, User, HardHat, ShieldCheck, Mail, Lock, Phone, Map, Calendar, Users, ArrowRight, CheckCircle2, FileText, BadgeCheck } from 'lucide-react';
 
@@ -8,6 +9,10 @@ type Role = 'user' | 'contractor' | 'authority';
 
 export default function Register() {
   const [role, setRole] = useState<Role>('user');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,18 +28,49 @@ export default function Register() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-  const { name, value, type } = e.target;
-  const checked = (e.target as HTMLInputElement).checked;
-  setFormData(prev => ({
-    ...prev,
-    [name]: type === 'checkbox' ? checked : value
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Registration attempt:', { role, ...formData });
-    // Add actual registration logic here
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          role: role,
+          address: formData.address,
+          age: formData.age,
+          gender: formData.gender,
+          contractorId: formData.contractorId,
+          authorityId: formData.authorityId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        router.replace('/login');
+      } else {
+        setError(data.message || 'Registration failed');
+      }
+    } catch (err) {
+      setError('Server error. Please try again.');
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -114,6 +150,13 @@ export default function Register() {
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Create an account</h2>
             <p className="text-slate-500 dark:text-slate-400">Fill in your details to get started with CivicLens.</p>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleRegister} className="space-y-8">
             {/* Role Selection */}
@@ -239,37 +282,20 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* Phone & Pincode (OTP) */}
+              {/* Phone */}
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number & Verification</label>
-                <div className="flex gap-3">
-                  <div className="relative flex-1">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent bg-white dark:bg-[#111827] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-shadow"
-                      placeholder="+91 98765 43210"
-                      required
-                    />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-slate-400" />
                   </div>
-                  <button type="button" className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 transition-colors whitespace-nowrap">
-                    Send OTP
-                  </button>
-                </div>
-                <div className="mt-3">
                   <input
-                    type="text"
-                    name="pincode"
-                    value={formData.pincode}
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
                     onChange={handleChange}
-                    className="block w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent bg-white dark:bg-[#111827] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-shadow text-center tracking-widest"
-                    placeholder="Enter 6-digit OTP"
-                    maxLength={6}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent bg-white dark:bg-[#111827] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-shadow"
+                    placeholder="+91 98765 43210"
                     required
                   />
                 </div>
@@ -378,10 +404,11 @@ export default function Register() {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition-colors"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
-              <ArrowRight className="w-4 h-4" />
+              {loading ? 'Creating Account...' : 'Create Account'}
+              {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
 
