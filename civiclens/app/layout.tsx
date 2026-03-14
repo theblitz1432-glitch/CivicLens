@@ -8,9 +8,13 @@ const inter = Inter({
   variable: '--font-inter'
 })
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'CivicLens',
   description: 'Empowering Citizens. Ensuring Accountability.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 export default function RootLayout({

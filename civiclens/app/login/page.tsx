@@ -59,10 +59,9 @@ export default function Login() {
             <div className="flex items-center gap-3 mb-8">
               <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                 <img 
-                  src="https://picsum.photos/seed/civiclens-logo/200/200" 
-                  alt="Logo" 
+                  src="/logo.png" 
+                  alt="CivicLens Logo" 
                   className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
                 />
               </div>
               <h1 className="text-4xl font-bold tracking-tight">CivicLens</h1>
