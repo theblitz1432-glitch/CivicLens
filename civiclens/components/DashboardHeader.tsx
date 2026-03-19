@@ -1,47 +1,42 @@
 'use client'
-
-import React from 'react';
-import { Bell, User } from 'lucide-react';
-import { motion } from 'motion/react';
+import { User, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
 
 interface DashboardHeaderProps {
   onProfileClick: () => void;
 }
 
-export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onProfileClick }) => {
+export function DashboardHeader({ onProfileClick }: DashboardHeaderProps) {
+  const { user, logout } = useAuth();
+
   return (
-    <header className="bg-white dark:bg-[#002a5c] border-b border-slate-200 dark:border-white/10 px-4 md:px-8 py-3 flex items-center justify-between sticky top-0 z-[60] transition-colors">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm bg-slate-900 flex items-center justify-center">
-           <img 
-            src="https://picsum.photos/seed/civiclens-logo/200/200" 
-            alt="CivicLens Logo" 
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-        <span className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">CivicLens</span>
+    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 z-40">
+      {/* Left - App Name (mobile only) */}
+      <div className="md:hidden flex items-center gap-2">
+        <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+        <span className="font-bold text-slate-900">CivicLens</span>
       </div>
-      
-      <div className="flex items-center gap-2 md:gap-4">
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="p-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors relative"
-        >
-          <Bell size={26} strokeWidth={1.5} />
-          <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#002a5c]" />
-        </motion.button>
-        
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+
+      {/* Right - Notification Bell + Profile */}
+      <div className="ml-auto flex items-center gap-3">
+        {/* Notification Bell */}
+        <NotificationBell />
+
+        {/* Profile Button */}
+        <button
           onClick={onProfileClick}
-          className="w-10 h-10 rounded-full border border-slate-900 dark:border-white flex items-center justify-center text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
+          className="flex items-center gap-2 pl-3 border-l border-slate-200"
         >
-          <User size={22} strokeWidth={1.5} />
-        </motion.button>
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+            <User size={18} />
+          </div>
+          <div className="hidden sm:block text-left">
+            <p className="text-xs font-bold text-slate-900 leading-tight">{user?.name || 'User'}</p>
+            <p className="text-[10px] text-slate-400 capitalize">{user?.role || 'citizen'}</p>
+          </div>
+        </button>
       </div>
     </header>
   );
-};
+}

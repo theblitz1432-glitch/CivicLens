@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  MapPin, Loader2, LayoutDashboard, Map as MapIcon, 
-  AlertCircle, User, Shield, HardHat, Mic, Search, 
-  Bell, Menu, X, ChevronRight, CheckCircle2, Clock, 
-  BarChart3, Camera, LogOut, Settings, ChevronDown, 
-  Home, Plus, Send, Bot, Sparkles, Minus, Phone
+import { useSearchParams } from 'next/navigation';
+import {
+  MapPin, Loader2, LayoutDashboard, Map as MapIcon,
+  AlertCircle, User, Shield, HardHat,
+  Bell, X, CheckCircle2, Clock,
+  BarChart3, Camera, Settings,
+  Home, Plus, Send, Phone,
+  AlertTriangle, ZoomIn, ZoomOut,
+  Navigation, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { SettingsContent } from '../../components/SettingsContent';
@@ -15,709 +18,689 @@ import { DashboardHeader } from '../../components/DashboardHeader';
 import { LucideIcon } from 'lucide-react';
 
 type Tab = 'overview' | 'map' | 'complaints' | 'analytics' | 'settings';
+const API = process.env.NEXT_PUBLIC_API_URL;
 
-export default function CitizenDashboard() {
+interface Project {
+  _id: string; title: string; description: string; location: string;
+  status: string; completionPercentage: number;
+  contractor: { name: string; phone: string };
+  authority: { name: string; designation: string; office: string };
+}
+interface Authority {
+  _id: string; name: string; designation: string; department: string;
+  office: string; phone: string; email: string;
+}
+interface Complaint {
+  _id: string; category: string; description: string; status: string;
+  photoVerified: boolean; location: { lat: number; lng: number; address: string }; createdAt: string;
+}
+interface Stats { total: number; resolved: number; inProgress: number; pending: number; }
+
+const authHeader = () => ({
+  Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('civiclens_token') : ''}`,
+  'Content-Type': 'application/json',
+});
+
+// ─── LEAFLET MAP ──────────────────────────────────────────────────────────────
+const LiveMap: React.FC<{
+  complaints: Complaint[];
+  projects: Project[];
+  userLocation: { lat: number; lng: number } | null;
+}> = ({ complaints, projects, userLocation }) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [activeLayer, setActiveLayer] = useState<'all' | 'complaints' | 'projects'>('all');
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      setMapLoaded(false);
+    }
+    const loadLeaflet = async () => {
+      if (typeof window === 'undefined' || !mapRef.current) return;
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+      await new Promise(r => setTimeout(r, 150));
+      if (!mapRef.current) return;
+      const L = (await import('leaflet')).default;
+      if ((mapRef.current as any)._leaflet_id) (mapRef.current as any)._leaflet_id = null;
+      const center = userLocation || { lat: 29.4739, lng: 75.9879 };
+      const map = L.map(mapRef.current, { center: [center.lat, center.lng], zoom: 14, zoomControl: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+      mapInstanceRef.current = map;
+      setMapLoaded(true);
+    };
+    loadLeaflet();
+    return () => {
+      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; setMapLoaded(false); }
+    };
+  }, [userLocation]);
+
+  useEffect(() => {
+    if (!mapLoaded || !mapInstanceRef.current) return;
+    const addMarkers = async () => {
+      const L = (await import('leaflet')).default;
+      const map = mapInstanceRef.current;
+      map.eachLayer((layer: any) => { if (!layer._url) map.removeLayer(layer); });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+      if (userLocation) {
+        const userIcon = L.divIcon({ html: `<div style="width:16px;height:16px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 3px rgba(59,130,246,0.4)"></div>`, iconSize: [16, 16], iconAnchor: [8, 8], className: '' });
+        L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).bindPopup('<b>📍 Your Location</b>').addTo(map);
+      }
+      const categoryColors: Record<string, string> = { 'Road & Infrastructure': '#ef4444', 'Water Supply': '#3b82f6', 'Electricity': '#f59e0b', 'Sanitation': '#8b5cf6', 'Street Light': '#f97316', 'Drainage': '#06b6d4', 'Park': '#22c55e', 'Other': '#6b7280' };
+      const categoryEmoji: Record<string, string> = { 'Road & Infrastructure': '🛣️', 'Water Supply': '💧', 'Electricity': '⚡', 'Sanitation': '🗑️', 'Street Light': '💡', 'Drainage': '🌊', 'Park': '🌳', 'Other': '📍' };
+      const statusColors: Record<string, string> = { pending: '#f59e0b', in_progress: '#3b82f6', resolved: '#22c55e', rejected: '#ef4444' };
+      if (activeLayer === 'all' || activeLayer === 'complaints') {
+        complaints.forEach(c => {
+          if (!c.location?.lat || !c.location?.lng) return;
+          const color = categoryColors[c.category] || '#6b7280';
+          const borderColor = statusColors[c.status] || '#6b7280';
+          const emoji = categoryEmoji[c.category] || '📍';
+          const icon = L.divIcon({ html: `<div style="width:28px;height:28px;background:${color};border:3px solid ${borderColor};border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:12px;">${emoji}</div>`, iconSize: [28, 28], iconAnchor: [14, 14], className: '' });
+          L.marker([c.location.lat, c.location.lng], { icon }).bindPopup(`<div style="font-family:Arial;min-width:160px;"><p style="font-weight:bold;margin:0 0 4px;color:#1e293b;">${c.category}</p><p style="font-size:12px;color:#475569;margin:0 0 6px;">${c.description?.substring(0, 80)}...</p><span style="background:${borderColor};color:white;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">${c.status.replace('_', ' ').toUpperCase()}</span></div>`).addTo(map);
+        });
+      }
+      if (activeLayer === 'all' || activeLayer === 'projects') {
+        projects.forEach((p, i) => {
+          const lat = (userLocation?.lat || 29.47) + (i % 3 - 1) * 0.008;
+          const lng = (userLocation?.lng || 75.99) + (Math.floor(i / 3) - 1) * 0.008;
+          const projectStatusColors: Record<string, string> = { in_progress: '#3b82f6', delayed: '#f59e0b', completed: '#22c55e', upcoming: '#8b5cf6' };
+          const color = projectStatusColors[p.status] || '#6b7280';
+          const icon = L.divIcon({ html: `<div style="width:36px;height:36px;background:${color};border:3px solid white;border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:16px;">🏗️</div>`, iconSize: [36, 36], iconAnchor: [18, 18], className: '' });
+          L.marker([lat, lng], { icon }).bindPopup(`<div style="font-family:Arial;min-width:180px;"><p style="font-weight:bold;margin:0 0 4px;color:#1e293b;">🏗️ ${p.title}</p><p style="font-size:12px;color:#475569;margin:0 0 6px;">${p.location}</p><div style="background:#f1f5f9;border-radius:4px;height:6px;margin-bottom:6px;"><div style="background:${color};height:100%;width:${p.completionPercentage}%;border-radius:4px;"></div></div><p style="font-size:11px;color:${color};font-weight:bold;">${p.completionPercentage}% Complete</p><span style="background:${color};color:white;padding:2px 8px;border-radius:4px;font-size:11px;">${p.status.replace('_', ' ').toUpperCase()}</span></div>`).addTo(map);
+        });
+      }
+      if ((activeLayer === 'all' || activeLayer === 'complaints') && userLocation) {
+        L.circle([userLocation.lat, userLocation.lng], { radius: 800, fillColor: complaints.length > 5 ? '#ef4444' : complaints.length > 2 ? '#f59e0b' : '#22c55e', fillOpacity: 0.08, color: complaints.length > 5 ? '#ef4444' : complaints.length > 2 ? '#f59e0b' : '#22c55e', weight: 1, opacity: 0.3 }).addTo(map);
+      }
+    };
+    addMarkers();
+  }, [mapLoaded, complaints, projects, userLocation, activeLayer]);
+
+  const handleZoom = (dir: 'in' | 'out') => { if (!mapInstanceRef.current) return; dir === 'in' ? mapInstanceRef.current.zoomIn() : mapInstanceRef.current.zoomOut(); };
+  const handleCenter = () => { if (!mapInstanceRef.current || !userLocation) return; mapInstanceRef.current.setView([userLocation.lat, userLocation.lng], 14); };
+
+  return (
+    <div className="relative w-full h-[500px] rounded-[32px] overflow-hidden border border-slate-200 shadow-sm">
+      <div ref={mapRef} className="w-full h-full" />
+      {!mapLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 rounded-[32px]">
+          <div className="text-center"><Loader2 size={32} className="animate-spin text-blue-500 mx-auto mb-2" /><p className="text-sm text-slate-500">Loading map...</p></div>
+        </div>
+      )}
+      <div className="absolute top-4 right-4 flex flex-col gap-2 z-[1000]">
+        <button onClick={() => handleZoom('in')} className="w-9 h-9 bg-white rounded-xl shadow-lg flex items-center justify-center text-slate-700 hover:bg-slate-50 border border-slate-200"><ZoomIn size={18} /></button>
+        <button onClick={() => handleZoom('out')} className="w-9 h-9 bg-white rounded-xl shadow-lg flex items-center justify-center text-slate-700 hover:bg-slate-50 border border-slate-200"><ZoomOut size={18} /></button>
+        <button onClick={handleCenter} className="w-9 h-9 bg-white rounded-xl shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-50 border border-slate-200"><Navigation size={18} /></button>
+      </div>
+      <div className="absolute top-4 left-4 z-[1000] bg-white rounded-2xl shadow-lg border border-slate-200 p-1 flex gap-1">
+        {(['all', 'complaints', 'projects'] as const).map(layer => (
+          <button key={layer} onClick={() => setActiveLayer(layer)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${activeLayer === layer ? 'bg-blue-500 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+            {layer === 'all' ? '🗺️ All' : layer === 'complaints' ? '⚠️ Issues' : '🏗️ Projects'}
+          </button>
+        ))}
+      </div>
+      <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 rounded-2xl shadow-lg border border-slate-200 p-3">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Legend</p>
+        <div className="space-y-1.5">
+          {[{ color: '#ef4444', label: 'Road Issues' }, { color: '#3b82f6', label: 'Water Issues' }, { color: '#f59e0b', label: 'Electricity' }, { color: '#3b82f6', label: 'Active Project' }, { color: '#f59e0b', label: 'Delayed Project' }].map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-2"><div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: color }} /><span className="text-[10px] text-slate-600">{label}</span></div>
+          ))}
+          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full flex-shrink-0 bg-red-400 opacity-40" /><span className="text-[10px] text-slate-600">High complaint zone</span></div>
+        </div>
+      </div>
+      <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 rounded-2xl shadow-lg border border-slate-200 p-3 text-center">
+        <p className="text-lg font-bold text-slate-900">{complaints.length}</p>
+        <p className="text-[10px] text-slate-500">Issues in area</p>
+        <p className="text-lg font-bold text-blue-600 mt-1">{projects.length}</p>
+        <p className="text-[10px] text-slate-500">Active projects</p>
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
+function CitizenDashboardInner() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [showSettings, setShowSettings] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   const [showAuthority, setShowAuthority] = useState(false);
-  const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const [locationName, setLocationName] = useState('Fetching location...');
   const [isFetchingLocation, setIsFetchingLocation] = useState(true);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [authorities, setAuthorities] = useState<Authority[]>([]);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, resolved: 0, inProgress: 0, pending: 0 });
+  const [loadingData, setLoadingData] = useState(true);
+  const searchParams = useSearchParams();
+
+  useEffect(() => { const tab = searchParams.get('tab') as Tab; if (tab) setActiveTab(tab); }, [searchParams]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
-    if ("geolocation" in navigator) {
+    if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setTimeout(() => {
-            setLocationName("Uklana Mandi, Haryana");
-            setIsFetchingLocation(false);
-          }, 2000);
-        },
-        (error: GeolocationPositionError) => {
-          setLocationName("Location Access Denied");
-          setIsFetchingLocation(false);
-        },
+        pos => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationName('Your Location'); setIsFetchingLocation(false); },
+        () => { setLocationName('Location Access Denied'); setIsFetchingLocation(false); },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
-    }  else {
-  setTimeout(() => {
-    setLocationName("Geolocation not supported");
-    setIsFetchingLocation(false);
-  }, 0);
-    }
+    } else { setLocationName('Geolocation not supported'); setIsFetchingLocation(false); }
   }, []);
+
+  const fetchAllData = useCallback(async () => {
+    setLoadingData(true);
+    try {
+      const headers = authHeader();
+      const [projRes, authRes, compRes, statsRes] = await Promise.all([
+        fetch(`${API}/civic/projects`, { headers }),
+        fetch(`${API}/civic/authorities`, { headers }),
+        fetch(`${API}/complaints/my`, { headers }),
+        fetch(`${API}/complaints/stats`, { headers }),
+      ]);
+      const [projData, authData, compData, statsData] = await Promise.all([projRes.json(), authRes.json(), compRes.json(), statsRes.json()]);
+      if (projData.success) setProjects(projData.projects);
+      if (authData.success) setAuthorities(authData.authorities);
+      if (compData.success) setComplaints(compData.complaints);
+      if (statsData.success) setStats(statsData.stats);
+    } catch (err) { console.error('Fetch error:', err); }
+    setLoadingData(false);
+  }, []);
+
+  useEffect(() => { fetchAllData(); }, [fetchAllData]);
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden font-sans">
-      {/* Sidebar (Desktop) */}
       <aside className="hidden md:flex w-72 border-r border-slate-200 flex-col p-8 bg-white shrink-0 h-full">
         <div className="flex items-center gap-3 mb-10">
           <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-            <img 
-              src="https://picsum.photos/seed/civiclens-logo/200/200" 
-              alt="Logo" 
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-900">CivicLens</span>
+          <span className="text-2xl font-bold tracking-tight">CivicLens</span>
         </div>
-
-        <nav className="flex-1 space-y-2 overflow-y-auto">
-          <NavItem icon={LayoutDashboard} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-          <NavItem icon={MapIcon} label="Live Map" active={activeTab === 'map'} onClick={() => setActiveTab('map')} />
-          <NavItem icon={AlertCircle} label="Complaints" active={activeTab === 'complaints'} onClick={() => setActiveTab('complaints')} />
-          <NavItem icon={BarChart3} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
-          <NavItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+        <nav className="flex-1 space-y-2">
+          {([['overview','Overview',LayoutDashboard],['map','Live Map',MapIcon],['complaints','Complaints',AlertCircle],['analytics','Analytics',BarChart3],['settings','Settings',Settings]] as [Tab,string,LucideIcon][]).map(([tab,label,Icon]) => (
+            <NavItem key={tab} icon={Icon} label={label} active={activeTab===tab} onClick={()=>setActiveTab(tab)} />
+          ))}
         </nav>
-
         <div className="mt-auto pt-8 border-t border-slate-100">
-          <div 
-            onClick={() => setActiveTab('settings')}
-            className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors"
-          >
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 shrink-0">
-              <User size={24} />
-            </div>
+          <div onClick={()=>setActiveTab('settings')} className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50 cursor-pointer hover:bg-slate-100">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500"><User size={24}/></div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate text-slate-900">{user?.name || 'Citizen'}</p>
+              <p className="text-sm font-bold truncate">{user?.name||'Citizen'}</p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Citizen</p>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
-        <DashboardHeader onProfileClick={() => setActiveTab('settings')} />
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <DashboardHeader onProfileClick={()=>setActiveTab('settings')} />
         <main className="flex-1 overflow-y-auto px-5 py-8 space-y-8 pb-32">
-          {activeTab === 'overview' && (
-            <OverviewTab 
-              user={user} 
-              locationName={locationName} 
-              isFetchingLocation={isFetchingLocation} 
-              setShowSettings={setShowSettings} 
-              setShowProjects={setShowProjects} 
-              setShowAuthority={setShowAuthority} 
-              setActiveTab={setActiveTab} 
-            />
+          {activeTab==='overview' && <OverviewTab user={user} locationName={locationName} isFetchingLocation={isFetchingLocation} setShowProjects={setShowProjects} setShowAuthority={setShowAuthority} setActiveTab={setActiveTab} stats={stats} loadingData={loadingData} />}
+          {activeTab==='map' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Live Village Map</h2>
+                <button onClick={fetchAllData} className="flex items-center gap-2 text-sm text-blue-600 font-medium"><RefreshCw size={16}/> Refresh</button>
+              </div>
+              <p className="text-sm text-slate-500">Showing complaints and projects in your area</p>
+              <LiveMap complaints={complaints} projects={projects} userLocation={userLocation} />
+            </div>
           )}
-          {activeTab === 'map' && <MapTab locationName={locationName} />}
-          {activeTab === 'complaints' && <ComplaintsTab />}
-          {activeTab === 'analytics' && <AnalyticsTab />}
-          {activeTab === 'settings' && <SettingsContent user={user} logout={logout} roleLabel="Citizen" />}
+          {activeTab==='complaints' && <ComplaintsTab onComplaintSubmitted={fetchAllData} existingComplaints={complaints} userLocation={userLocation} />}
+          {activeTab==='analytics' && <AnalyticsTab stats={stats} complaints={complaints} />}
+          {activeTab==='settings' && <SettingsContent user={user} logout={logout} roleLabel="Citizen" />}
         </main>
 
-        {/* Floating Voice Agent Button */}
-        <div className="fixed bottom-24 right-6 z-[90] flex flex-col items-end gap-3">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowVoiceAgent(true)}
-            className="w-16 h-16 bg-blue-600 text-white rounded-full shadow-2xl shadow-blue-500/40 flex items-center justify-center group relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-transparent pointer-events-none" />
-            <Bot size={32} className="group-hover:rotate-12 transition-transform" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full" />
-          </motion.button>
-        </div>
-
-        {/* Mobile Bottom Nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-4 py-3 flex items-center justify-between z-50 h-20">
           <div className="flex flex-1 items-center justify-around">
-            <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 ${activeTab === 'overview' ? 'text-blue-500' : 'text-slate-400'}`}>
-              <Home size={24} />
-              <span className="text-[10px] font-bold">Home</span>
-            </button>
-            <button onClick={() => setActiveTab('complaints')} className={`flex flex-col items-center gap-1 ${activeTab === 'complaints' ? 'text-blue-500' : 'text-slate-400'}`}>
-              <AlertCircle size={24} />
-              <span className="text-[10px] font-bold">Complaint</span>
-            </button>
+            <button onClick={()=>setActiveTab('overview')} className={`flex flex-col items-center gap-1 ${activeTab==='overview'?'text-blue-500':'text-slate-400'}`}><Home size={24}/><span className="text-[10px] font-bold">Home</span></button>
+            <button onClick={()=>setActiveTab('complaints')} className={`flex flex-col items-center gap-1 ${activeTab==='complaints'?'text-blue-500':'text-slate-400'}`}><AlertCircle size={24}/><span className="text-[10px] font-bold">Complaint</span></button>
           </div>
-
           <div className="relative -top-6">
-            <motion.button 
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setActiveTab('map')}
-              className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl border-4 border-white ${activeTab === 'map' ? 'bg-blue-600 shadow-blue-600/30' : 'bg-blue-500 shadow-blue-500/30'}`}
-            >
-              <Plus size={32} />
-            </motion.button>
-            <span className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold ${activeTab === 'map' ? 'text-blue-600' : 'text-blue-500'}`}>Map</span>
+            <motion.button whileTap={{scale:0.9}} onClick={()=>setActiveTab('map')} className="w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl border-4 border-white bg-blue-500"><Plus size={32}/></motion.button>
+            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-blue-500">Map</span>
           </div>
-
           <div className="flex flex-1 items-center justify-around">
-            <button onClick={() => setActiveTab('analytics')} className={`flex flex-col items-center gap-1 ${activeTab === 'analytics' ? 'text-blue-500' : 'text-slate-400'}`}>
-              <Bell size={24} />
-              <span className="text-[10px] font-bold">Updates</span>
-            </button>
-            <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center gap-1 ${activeTab === 'settings' ? 'text-blue-500' : 'text-slate-400'}`}>
-              <User size={24} />
-              <span className="text-[10px] font-bold">Profile</span>
-            </button>
+            <button onClick={()=>setActiveTab('analytics')} className={`flex flex-col items-center gap-1 ${activeTab==='analytics'?'text-blue-500':'text-slate-400'}`}><Bell size={24}/><span className="text-[10px] font-bold">Updates</span></button>
+            <button onClick={()=>setActiveTab('settings')} className={`flex flex-col items-center gap-1 ${activeTab==='settings'?'text-blue-500':'text-slate-400'}`}><User size={24}/><span className="text-[10px] font-bold">Profile</span></button>
           </div>
         </div>
       </div>
 
-
-      {/* Projects Modal */}
       <AnimatePresence>
         {showProjects && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowProjects(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }}
-              className="relative w-full max-w-lg bg-white rounded-t-[40px] sm:rounded-[40px] border border-slate-200 overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
-            >
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur z-10">
-                <h2 className="text-xl font-bold text-slate-900">Ongoing Projects</h2>
-                <button onClick={() => setShowProjects(false)} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X size={20} /></button>
-              </div>
-              <div className="p-6 overflow-y-auto space-y-6">
-                {/* Project 1 */}
-                <div className="bg-slate-50 rounded-[28px] p-5 border border-slate-200 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-lg">Main Road Paving</h3>
-                      <p className="text-xs text-slate-500">Sector 4 to Market</p>
-                    </div>
-                    <div className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider">In Progress</div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-500">Completion</span>
-                      <span className="text-blue-600">65%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                      <div className="bg-blue-500 h-full rounded-full w-[65%]" />
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-200 space-y-4">
-                    {/* Contractor Details */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Contractor Details</h4>
-                      <div className="bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600">
-                          <HardHat size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">BuildRight Infra Pvt Ltd.</p>
-                          <p className="text-xs text-slate-500">Contact: +91 98765 43210</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Higher Authority Details */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Higher Authority</h4>
-                      <div className="bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                          <Shield size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">Dr. Sandeep Kumar, IAS</p>
-                          <p className="text-xs text-slate-500">District Magistrate Office</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          <Modal title="Ongoing Projects" onClose={()=>setShowProjects(false)}>
+            {loadingData ? <Loader2 className="animate-spin mx-auto my-8"/> : projects.length===0 ? (
+              <p className="text-center text-slate-400 py-8">No projects found</p>
+            ) : projects.map(p=>(
+              <div key={p._id} className="bg-slate-50 rounded-[28px] p-5 border border-slate-200 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div><h3 className="font-bold text-slate-900 text-lg">{p.title}</h3><p className="text-xs text-slate-500">{p.location}</p></div>
+                  <StatusBadge status={p.status}/>
                 </div>
-                
-                {/* Project 2 */}
-                <div className="bg-slate-50 rounded-[28px] p-5 border border-slate-200 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-lg">Water Pipeline Upgrade</h3>
-                      <p className="text-xs text-slate-500">North Zone</p>
-                    </div>
-                    <div className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider">Delayed</div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-500">Completion</span>
-                      <span className="text-orange-600">30%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                      <div className="bg-orange-500 h-full rounded-full w-[30%]" />
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-200 space-y-4">
-                    {/* Contractor Details */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Contractor Details</h4>
-                      <div className="bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600">
-                          <HardHat size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">AquaFlow Engineering</p>
-                          <p className="text-xs text-slate-500">Contact: +91 91234 56789</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Higher Authority Details */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Higher Authority</h4>
-                      <div className="bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                          <Shield size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">Mrs. Anita Sharma</p>
-                          <p className="text-xs text-slate-500">Chief Engineer, Water Dept.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <ProgressBar value={p.completionPercentage}/>
+                <div className="pt-4 border-t border-slate-200 space-y-3">
+                  <InfoCard icon={<HardHat size={20}/>} color="orange" title={p.contractor.name} subtitle={`Contact: ${p.contractor.phone}`}/>
+                  <InfoCard icon={<Shield size={20}/>} color="blue" title={p.authority.name} subtitle={p.authority.designation}/>
                 </div>
               </div>
-            </motion.div>
-          </div>
+            ))}
+          </Modal>
         )}
       </AnimatePresence>
 
-      {/* Authority Details Modal */}
       <AnimatePresence>
         {showAuthority && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowAuthority(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }}
-              className="relative w-full max-w-lg bg-white rounded-t-[40px] sm:rounded-[40px] border border-slate-200 overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
-            >
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur z-10">
-                <h2 className="text-xl font-bold text-slate-900">Local Authorities</h2>
-                <button onClick={() => setShowAuthority(false)} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X size={20} /></button>
-              </div>
-              <div className="p-6 overflow-y-auto space-y-4">
-                {/* Authority 1 */}
-                <div className="bg-white rounded-[24px] p-5 border border-slate-200 shadow-sm flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shrink-0">
-                    <Shield size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-900">Dr. Sandeep Kumar, IAS</h3>
-                    <p className="text-xs text-slate-500 mb-3">District Magistrate</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <MapPin size={14} className="text-slate-400" />
-                        <span>DM Office, Civil Lines</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <Phone size={14} className="text-slate-400" />
-                        <span>+91 11 2345 6789</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Authority 2 */}
-                <div className="bg-white rounded-[24px] p-5 border border-slate-200 shadow-sm flex items-start gap-4">
-                  <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 shrink-0">
-                    <Shield size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-900">Mrs. Anita Sharma</h3>
-                    <p className="text-xs text-slate-500 mb-3">Chief Engineer, Water Dept.</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <MapPin size={14} className="text-slate-400" />
-                        <span>Municipal Corporation Bldg</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <Phone size={14} className="text-slate-400" />
-                        <span>+91 11 9876 5432</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Authority 3 */}
-                <div className="bg-white rounded-[24px] p-5 border border-slate-200 shadow-sm flex items-start gap-4">
-                  <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 shrink-0">
-                    <Shield size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-900">Mr. Rajesh Verma</h3>
-                    <p className="text-xs text-slate-500 mb-3">Superintendent of Police</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <MapPin size={14} className="text-slate-400" />
-                        <span>Police Headquarters</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <Phone size={14} className="text-slate-400" />
-                        <span>100 / +91 11 1122 3344</span>
-                      </div>
-                    </div>
+          <Modal title="Local Authorities" onClose={()=>setShowAuthority(false)}>
+            {loadingData ? <Loader2 className="animate-spin mx-auto my-8"/> : authorities.length===0 ? (
+              <p className="text-center text-slate-400 py-8">No authorities found</p>
+            ) : authorities.map(a=>(
+              <div key={a._id} className="bg-white rounded-[24px] p-5 border border-slate-200 shadow-sm flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shrink-0"><Shield size={24}/></div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-slate-900">{a.name}</h3>
+                  <p className="text-xs text-slate-500 mb-3">{a.designation} — {a.department}</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-slate-600"><MapPin size={12} className="text-slate-400"/>{a.office}</div>
+                    <div className="flex items-center gap-2 text-xs text-slate-600"><Phone size={12} className="text-slate-400"/>{a.phone}</div>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </div>
+            ))}
+          </Modal>
         )}
       </AnimatePresence>
     </div>
   );
 }
 
-const NavItem: React.FC<{ icon: LucideIcon, label: string, active?: boolean, onClick: () => void }> = ({ icon: Icon, label, active = false, onClick }) => (
-  <button 
-    onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all ${
-      active ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-    }`}
-  >
-    <Icon size={22} />
-    <span className="font-semibold">{label}</span>
-  </button>
-);
+// ─── COMPLAINTS TAB ───────────────────────────────────────────────────────────
+const ComplaintsTab: React.FC<{
+  onComplaintSubmitted: () => void;
+  existingComplaints: Complaint[];
+  userLocation: { lat: number; lng: number } | null;
+}> = ({ onComplaintSubmitted, existingComplaints, userLocation }) => {
+  const [category, setCategory] = useState('Road & Infrastructure');
+  const [description, setDescription] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [verifyingPhoto, setVerifyingPhoto] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-const MapTab: React.FC<{ locationName: string }> = ({ locationName }) => (
-  <div className="space-y-4 h-full flex flex-col">
-    <div className="flex items-center justify-between">
-      <h2 className="text-2xl font-bold text-slate-900">Live Map</h2>
-      <div className="bg-white px-3 py-1.5 rounded-full border border-slate-200 text-xs font-bold text-slate-600 flex items-center gap-2">
-        <MapPin size={14} className="text-blue-500" />
-        {locationName}
-      </div>
-    </div>
-    <div className="flex-1 bg-slate-200 rounded-[32px] overflow-hidden relative border border-slate-200 min-h-[400px]">
-      {/* Simulated Map Background */}
-      <img src="https://picsum.photos/seed/map/800/600?blur=2" alt="Map" className="w-full h-full object-cover opacity-50" referrerPolicy="no-referrer" />
-      
-      {/* Map Overlay content */}
-      <div className="absolute inset-0 p-6 flex flex-col justify-between">
-        <div className="flex justify-end">
-          <div className="bg-white/90 backdrop-blur p-2 rounded-xl shadow-lg space-y-2">
-            <button className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-600 hover:text-blue-600 shadow-sm"><Plus size={18} /></button>
-            <button className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-600 hover:text-blue-600 shadow-sm"><Minus size={18} /></button>
-          </div>
-        </div>
-        
-        {/* Simulated Markers */}
-        <div className="absolute top-1/3 left-1/4">
-          <div className="relative group cursor-pointer">
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-600/40 animate-bounce">
-              <HardHat size={20} />
-            </div>
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white p-3 rounded-xl shadow-xl border border-slate-100 w-48 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <p className="text-xs font-bold text-slate-900">Road Paving</p>
-              <p className="text-[10px] text-slate-500">65% Complete</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="absolute top-1/2 right-1/3">
-          <div className="relative group cursor-pointer">
-            <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-orange-500/40">
-              <AlertCircle size={20} />
-            </div>
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white p-3 rounded-xl shadow-xl border border-slate-100 w-48 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <p className="text-xs font-bold text-slate-900">Water Pipe Leak</p>
-              <p className="text-[10px] text-orange-500">In Progress</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
+  const openCamera = async () => {
+    setError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setCameraStream(stream);
+      setShowCamera(true);
+      setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = stream; }, 100);
+    } catch { setError('Camera access denied. Please allow camera permission.'); }
+  };
 
-const ComplaintsTab: React.FC = () => (
-  <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-slate-900">Register Complaint</h2>
-    
-    <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm space-y-6">
-      <div className="space-y-4">
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    if (userLocation) {
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(`📍 ${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)}`, 10, canvas.height - 36);
+      ctx.font = '12px Arial';
+      ctx.fillText(`🕐 ${new Date().toLocaleString('en-IN')} | CivicLens`, 10, canvas.height - 14);
+    }
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    setPhoto(dataUrl);
+    setPhotoPreview(dataUrl);
+    cameraStream?.getTracks().forEach(t => t.stop());
+    setCameraStream(null);
+    setShowCamera(false);
+  };
+
+  const handleSubmit = async () => {
+    setError('');
+    if (!description.trim()) return setError('Please describe the issue');
+    if (!photo) return setError('Please take a photo of the issue');
+    setSubmitting(true);
+    setVerifyingPhoto(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('civiclens_token') : '';
+      const response = await fetch(`${API}/complaints`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          category, description, photoBase64: photo,
+          location: userLocation
+            ? { lat: userLocation.lat, lng: userLocation.lng, address: 'Current Location' }
+            : { lat: 0, lng: 0, address: 'Unknown' }
+        }),
+      });
+      setVerifyingPhoto(false);
+      const data = await response.json();
+      if (data.photoRejected) { setError(`⚠️ Photo rejected: ${data.message}`); setSubmitting(false); return; }
+      if (data.success) {
+        setSubmitted(true);
+        setCategory('Road & Infrastructure');
+        setDescription('');
+        setPhoto(null);
+        setPhotoPreview(null);
+        onComplaintSubmitted();
+        setTimeout(() => setSubmitted(false), 4000);
+      } else { setError(data.message || 'Submission failed'); }
+    } catch { setError('Server error. Please try again.'); setVerifyingPhoto(false); }
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-slate-900">Register Complaint</h2>
+
+      {/* Camera Overlay */}
+      {showCamera && (
+        <div className="fixed inset-0 z-[200] bg-black flex flex-col">
+          <div className="flex items-center justify-between p-4">
+            <span className="text-white font-semibold">📸 Capture Photo</span>
+            <button onClick={() => { cameraStream?.getTracks().forEach(t => t.stop()); setShowCamera(false); }} className="text-white bg-white/20 rounded-full p-2"><X size={20} /></button>
+          </div>
+          <video ref={videoRef} autoPlay playsInline className="flex-1 object-cover" />
+          <canvas ref={canvasRef} className="hidden" />
+          {userLocation && (
+            <div className="bg-black/70 px-4 py-2 text-white text-xs">
+              📍 {userLocation.lat.toFixed(5)}, {userLocation.lng.toFixed(5)} • {new Date().toLocaleString('en-IN')}
+            </div>
+          )}
+          <div className="p-6 flex justify-center bg-black">
+            <button onClick={capturePhoto} className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-xl">
+              <Camera size={32} className="text-slate-900" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {submitted && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3 text-green-700">
+          <CheckCircle2 size={20} />
+          <div>
+            <p className="font-semibold">Complaint submitted successfully!</p>
+            <p className="text-sm">Contractor and local authority have been notified.</p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 text-red-700">
+          <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+          <span className="text-sm">{error}</span>
+        </div>
+      )}
+
+      <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm space-y-5">
+        {/* Category */}
         <div>
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category</label>
-          <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-blue-500">
-            <option>Road & Infrastructure</option>
-            <option>Water Supply</option>
-            <option>Electricity</option>
-            <option>Sanitation</option>
-            <option>Other</option>
+          <select id="complaint-category" value={category} onChange={e => setCategory(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-blue-500">
+            {['Road & Infrastructure', 'Water Supply', 'Electricity', 'Sanitation', 'Street Light', 'Drainage', 'Park', 'Other'].map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-        
+
+        {/* Description */}
         <div>
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Description</label>
-          <textarea 
-            rows={4}
+          <textarea id="complaint-description" rows={4} value={description} onChange={e => setDescription(e.target.value)}
             placeholder="Describe the issue in detail..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-blue-500 resize-none"
-          />
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-blue-500 resize-none" />
         </div>
-        
+
+        {/* Photo - Camera only */}
         <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Photo Evidence</label>
-          <div className="w-full border-2 border-dashed border-slate-300 rounded-2xl p-8 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-blue-400 hover:text-blue-500 transition-colors cursor-pointer">
-            <Camera size={32} className="mb-2" />
-            <span className="text-sm font-bold">Tap to capture or upload</span>
-          </div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            Photo Evidence <span className="text-red-500">*</span>
+            <span className="ml-2 text-green-600 normal-case font-normal text-[10px]">AI verified for authenticity</span>
+          </label>
+
+          {photoPreview ? (
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200">
+              <img src={photoPreview} alt="Complaint" className="w-full h-52 object-cover" />
+              <button onClick={() => { setPhoto(null); setPhotoPreview(null); }}
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg">
+                <X size={16} />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-3">
+                {userLocation && (
+                  <p className="text-white text-xs font-medium">📍 {userLocation.lat.toFixed(5)}, {userLocation.lng.toFixed(5)}</p>
+                )}
+                <p className="text-white/70 text-[10px]">🕐 {new Date().toLocaleString('en-IN')}</p>
+              </div>
+              <button onClick={openCamera}
+                className="absolute bottom-3 right-3 bg-white/20 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full border border-white/30 flex items-center gap-1">
+                <Camera size={12} /> Retake
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={openCamera}
+              className="w-full border-2 border-dashed border-slate-300 rounded-2xl p-10 flex flex-col items-center text-slate-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/30 transition-all">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                <Camera size={28} className="text-slate-400" />
+              </div>
+              <span className="text-sm font-bold">Take Photo</span>
+              <span className="text-[11px] text-slate-400 mt-1">Camera required for verification</span>
+            </button>
+          )}
         </div>
-        
+
+        {/* Location */}
         <div className="flex items-center gap-3 bg-blue-50 p-4 rounded-xl text-blue-800 text-sm">
           <MapPin size={20} className="text-blue-500 shrink-0" />
-          <p>Your current location will be attached automatically to verify the complaint.</p>
+          <div>
+            <p className="font-medium">Location attached automatically</p>
+            {userLocation && <p className="text-xs text-blue-600 mt-0.5">{userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</p>}
+          </div>
+        </div>
+
+        {/* AI Notice */}
+        <div className="flex items-center gap-3 bg-purple-50 p-3 rounded-xl text-purple-800 text-xs">
+          <Shield size={16} className="text-purple-500 shrink-0" />
+          <p>Photo verified by AI. Complaint automatically sent to contractor & local authority.</p>
+        </div>
+
+        {/* Submit */}
+        <button id="complaint-submit" onClick={handleSubmit} disabled={submitting}
+          className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
+          {submitting
+            ? <><Loader2 size={18} className="animate-spin" />{verifyingPhoto ? 'AI Verifying Photo...' : 'Submitting...'}</>
+            : <><Send size={18} />Submit Complaint</>
+          }
+        </button>
+      </div>
+
+      {/* My Complaints */}
+      {existingComplaints.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-bold text-slate-900">My Complaints ({existingComplaints.length})</h3>
+          {existingComplaints.map(c => (
+            <div key={c._id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-start justify-between mb-2">
+                <div><p className="font-bold text-slate-900 text-sm">{c.category}</p><p className="text-xs text-slate-500 mt-0.5">{new Date(c.createdAt).toLocaleDateString('en-IN')}</p></div>
+                <StatusBadge status={c.status} />
+              </div>
+              <p className="text-xs text-slate-600 line-clamp-2">{c.description}</p>
+              {c.photoVerified && <div className="mt-2 flex items-center gap-1 text-xs text-green-600"><CheckCircle2 size={12} /><span>Photo verified by AI</span></div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── ANALYTICS TAB ─────────────────────────────────────────────────────────────
+const AnalyticsTab: React.FC<{ stats: Stats; complaints: Complaint[] }> = ({ stats, complaints }) => (
+  <div className="space-y-6">
+    <h2 className="text-2xl font-bold">Analytics</h2>
+    <div className="grid grid-cols-2 gap-4">
+      {[{ label: 'Total', value: stats.total, color: 'blue', icon: AlertCircle }, { label: 'Resolved', value: stats.resolved, color: 'green', icon: CheckCircle2 }, { label: 'In Progress', value: stats.inProgress, color: 'orange', icon: Clock }, { label: 'Pending', value: stats.pending, color: 'yellow', icon: AlertTriangle }].map(({ label, value, color, icon: Icon }) => (
+        <div key={label} className="bg-white p-5 rounded-[28px] border border-slate-200 shadow-sm">
+          <div className={`w-10 h-10 bg-${color}-100 rounded-full flex items-center justify-center text-${color}-600 mb-3`}><Icon size={20} /></div>
+          <p className="text-3xl font-bold text-slate-900">{value}</p>
+          <p className="text-xs text-slate-500 mt-1">{label}</p>
+        </div>
+      ))}
+    </div>
+    {complaints.length > 0 && (
+      <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
+        <h3 className="font-bold text-slate-900 mb-4">Recent Activity</h3>
+        <div className="space-y-3">
+          {complaints.slice(0, 5).map(c => (
+            <div key={c._id} className="flex items-center gap-3 pb-3 border-b border-slate-50 last:border-0 last:pb-0">
+              <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+              <div className="flex-1"><p className="text-sm font-bold text-slate-900">{c.category}</p><p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleDateString('en-IN')}</p></div>
+              <StatusBadge status={c.status} />
+            </div>
+          ))}
         </div>
       </div>
-      
-      <button className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
-        <Send size={18} />
-        Submit Complaint
-      </button>
-    </div>
+    )}
   </div>
 );
 
-const AnalyticsTab: React.FC = () => (
-  <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-slate-900">Village Analytics</h2>
-    
-    <div className="grid grid-cols-2 gap-4">
-      <div className="bg-white p-5 rounded-[28px] border border-slate-200 shadow-sm">
-        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-3">
-          <CheckCircle2 size={20} />
-        </div>
-        <p className="text-3xl font-bold text-slate-900">84%</p>
-        <p className="text-xs text-slate-500 mt-1">Resolution Rate</p>
-      </div>
-      <div className="bg-white p-5 rounded-[28px] border border-slate-200 shadow-sm">
-        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-3">
-          <Clock size={20} />
-        </div>
-        <p className="text-3xl font-bold text-slate-900">4.2</p>
-        <p className="text-xs text-slate-500 mt-1">Days Avg Response</p>
-      </div>
-    </div>
-    
-    <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
-      <h3 className="font-bold text-slate-900 mb-4">Recent Updates</h3>
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0">
-            <div className="w-2 h-2 mt-2 rounded-full bg-blue-500 shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-slate-900">Water supply restored in Sector {i}</p>
-              <p className="text-xs text-slate-500 mt-1">{i} hours ago</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-interface OverviewTabProps {
-  user: ReturnType<typeof useAuth>['user'];   
-  locationName: string;
-  isFetchingLocation: boolean;
-  setShowSettings: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowProjects: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowAuthority: React.Dispatch<React.SetStateAction<boolean>>;
-  setActiveTab: React.Dispatch<React.SetStateAction<Tab>>;
-}
-const OverviewTab: React.FC<OverviewTabProps> = ({
-  user,
-  locationName,
-  isFetchingLocation,
-  setShowSettings,    
-  setShowProjects,
-  setShowAuthority,
-  setActiveTab,
-}) => (
+// ─── OVERVIEW TAB ─────────────────────────────────────────────────────────────
+interface OverviewTabProps { user: any; locationName: string; isFetchingLocation: boolean; setShowProjects: (v: boolean) => void; setShowAuthority: (v: boolean) => void; setActiveTab: (t: Tab) => void; stats: Stats; loadingData: boolean; }
+const OverviewTab: React.FC<OverviewTabProps> = ({ user, locationName, isFetchingLocation, setShowProjects, setShowAuthority, setActiveTab, stats, loadingData }) => (
   <>
-    {/* Welcome Header */}
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-slate-900">Welcome, {user?.name?.split(' ')[0] || ''} 👋</h1>
-      </div>
-      
+      <h1 className="text-3xl font-bold text-slate-900">Welcome, {user?.name?.split(' ')[0] || ''} 👋</h1>
       <div className="bg-white border border-slate-200 rounded-2xl px-5 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${isFetchingLocation ? 'bg-slate-100' : 'bg-blue-50'}`}>
-            {isFetchingLocation ? (
-              <Loader2 size={20} className="text-slate-400 animate-spin" />
-            ) : (
-              <MapPin size={20} className="text-blue-600" />
-            )}
+            {isFetchingLocation ? <Loader2 size={20} className="text-slate-400 animate-spin" /> : <MapPin size={20} className="text-blue-600" />}
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Location</p>
-            <p className="text-sm font-bold text-slate-900">{locationName}</p>
-          </div>
+          <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Location</p><p className="text-sm font-bold text-slate-900">{locationName}</p></div>
         </div>
-        {!isFetchingLocation && (
-           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Live via Cellular Network" />
-        )}
+        {!isFetchingLocation && <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />}
       </div>
     </div>
-
-    {/* Development Section */}
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-slate-900 font-bold">
-        <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white">
-          <HardHat size={14} />
-        </div>
-        <h2>Development</h2>
-      </div>
-      
+      <SectionHeader icon={<HardHat size={14} />} color="blue" title="Development" />
       <div className="grid grid-cols-2 gap-4">
-        <motion.div 
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowProjects(true)}
-          className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-2 cursor-pointer hover:border-blue-200 transition-colors"
-        >
-          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-1">
-            <HardHat size={32} className="text-blue-500" />
-          </div>
-          <h3 className="font-bold text-slate-900 text-sm leading-tight">Ongoing Projects</h3>
+        <motion.div whileTap={{ scale: 0.95 }} onClick={() => setShowProjects(true)} className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-2 cursor-pointer hover:border-blue-200 transition-colors">
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">{loadingData ? <Loader2 size={28} className="text-blue-400 animate-spin" /> : <HardHat size={32} className="text-blue-500" />}</div>
+          <h3 className="font-bold text-slate-900 text-sm">Ongoing Projects</h3>
           <p className="text-[10px] text-slate-500">Nearby locality projects</p>
         </motion.div>
-        
-        <motion.div 
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowAuthority(true)}
-          className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-2 relative overflow-hidden cursor-pointer hover:border-blue-200 transition-colors"
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-blue-50/30 pointer-events-none" />
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-1 z-10">
-            <Shield size={32} className="text-blue-600" />
-          </div>
-          <h3 className="font-bold text-slate-900 text-sm leading-tight z-10">Authority Details</h3>
-          <p className="text-[10px] text-slate-500 z-10">Ruling party & officials</p>
+        <motion.div whileTap={{ scale: 0.95 }} onClick={() => setShowAuthority(true)} className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-2 cursor-pointer hover:border-blue-200 transition-colors">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">{loadingData ? <Loader2 size={28} className="text-blue-400 animate-spin" /> : <Shield size={32} className="text-blue-600" />}</div>
+          <h3 className="font-bold text-slate-900 text-sm">Authority Details</h3>
+          <p className="text-[10px] text-slate-500">Local officials</p>
         </motion.div>
       </div>
     </div>
-
-    {/* Complaints Section */}
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-slate-900 font-bold">
-        <div className="w-6 h-6 bg-orange-500 rounded-md flex items-center justify-center text-white">
-          <AlertCircle size={14} />
-        </div>
-        <h2>Complaints</h2>
-      </div>
-      
+      <SectionHeader icon={<AlertCircle size={14} />} color="orange" title="Complaints" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Register Complaint Card */}
-        <div className="bg-orange-50/50 p-6 rounded-[32px] border border-orange-100 relative overflow-hidden">
-          <div className="space-y-4 relative z-10">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                <AlertCircle size={24} className="text-orange-500" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900 text-lg">Register Complaint</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">Submit and track issues in your village</p>
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => setActiveTab('complaints')}
-              className="w-full py-4 bg-[#2D7A6E] text-white rounded-2xl font-bold text-sm shadow-lg shadow-teal-900/10 active:scale-[0.98] transition-transform"
-            >
-              FILE A COMPLAINT
-            </button>
-            
-            <div className="grid grid-cols-2 gap-y-3 gap-x-2">
-              <div className="flex items-center gap-2 text-[10px] font-medium text-slate-600">
-                <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                  <CheckCircle2 size={10} />
-                </div>
-                Location Locked
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-medium text-slate-600">
-                <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                  <CheckCircle2 size={10} />
-                </div>
-                Captured Live
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-medium text-slate-600">
-                <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
-                  <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                </div>
-                Anonymous
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-medium text-slate-600">
-                <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                  <Plus size={10} />
-                </div>
-                Submit
-              </div>
-            </div>
+        <div className="bg-orange-50/50 p-6 rounded-[32px] border border-orange-100">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm"><AlertCircle size={24} className="text-orange-500" /></div>
+            <div><h3 className="font-bold text-slate-900 text-lg">Register Complaint</h3><p className="text-xs text-slate-500">AI-verified • Auto-notifies authority</p></div>
           </div>
-          <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-orange-200/20 rounded-full blur-3xl" />
+          <button onClick={() => setActiveTab('complaints')} className="w-full py-4 bg-[#2D7A6E] text-white rounded-2xl font-bold text-sm shadow-lg active:scale-[0.98] transition-all">FILE A COMPLAINT</button>
         </div>
-
-        {/* Track Complaint Card */}
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-500">
-              <Bell size={20} />
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
+          <div className="flex items-center gap-3"><div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-500"><Bell size={20} /></div><h3 className="font-bold text-slate-900">Track Complaints</h3></div>
+          {loadingData ? <Loader2 size={20} className="animate-spin text-slate-400" /> : (
+            <div className="space-y-3">
+              <StatRow label="Total" value={stats.total} sub="Submitted" color="blue" icon={AlertCircle} />
+              <StatRow label="Resolved" value={stats.resolved} sub="Done" color="green" icon={CheckCircle2} />
+              <StatRow label="In Progress" value={stats.inProgress} sub="Active" color="orange" icon={Clock} />
             </div>
-            <h3 className="font-bold text-slate-900">Track Complaint</h3>
-          </div>
-          
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white">
-                  <CheckCircle2 size={12} />
-                </div>
-                Submitted
-              </div>
-              <div className="text-xs font-bold text-slate-900">124 <span className="text-slate-400 font-normal">Total</span></div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white">
-                  <CheckCircle2 size={12} />
-                </div>
-                Verified
-              </div>
-              <div className="text-xs font-bold text-slate-900">98 <span className="text-slate-400 font-normal">Resolved</span></div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <div className="w-5 h-5 rounded-full bg-orange-400 flex items-center justify-center text-white">
-                  <Clock size={12} />
-                </div>
-                In Progress
-              </div>
-              <div className="text-xs font-bold text-slate-900">26 <span className="text-slate-400 font-normal">Pending</span></div>
-            </div>
-          </div>
-          
-          <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <Clock size={14} />
-              Avg 5 days Res. Time
-            </div>
-            <ChevronRight size={16} className="text-slate-300" />
-          </div>
+          )}
         </div>
       </div>
     </div>
   </>
 );
 
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const NavItem: React.FC<{ icon: LucideIcon; label: string; active?: boolean; onClick: () => void }> = ({ icon: Icon, label, active, onClick }) => (
+  <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all ${active ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
+    <Icon size={22} /><span className="font-semibold">{label}</span>
+  </button>
+);
+
+const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
+  <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+    <motion.div initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }} className="relative w-full max-w-lg bg-white rounded-t-[40px] sm:rounded-[40px] border border-slate-200 overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+      <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur z-10">
+        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+        <button onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X size={20} /></button>
+      </div>
+      <div className="p-6 overflow-y-auto space-y-4">{children}</div>
+    </motion.div>
+  </div>
+);
+
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const map: Record<string, string> = { in_progress: 'bg-blue-100 text-blue-700', delayed: 'bg-orange-100 text-orange-700', completed: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700', resolved: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-700', verified: 'bg-blue-100 text-blue-700' };
+  return <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${map[status] || 'bg-slate-100 text-slate-600'}`}>{status.replace('_', ' ')}</span>;
+};
+
+const ProgressBar: React.FC<{ value: number }> = ({ value }) => (
+  <div className="space-y-1">
+    <div className="flex justify-between text-xs font-bold"><span className="text-slate-500">Completion</span><span className="text-blue-600">{value}%</span></div>
+    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden"><div className="bg-blue-500 h-full rounded-full" style={{ width: `${value}%` }} /></div>
+  </div>
+);
+
+const InfoCard: React.FC<{ icon: React.ReactNode; color: string; title: string; subtitle: string }> = ({ icon, color, title, subtitle }) => (
+  <div className="bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3">
+    <div className={`w-10 h-10 bg-${color}-50 rounded-lg flex items-center justify-center text-${color}-600`}>{icon}</div>
+    <div><p className="text-sm font-bold text-slate-900">{title}</p><p className="text-xs text-slate-500">{subtitle}</p></div>
+  </div>
+);
+
+const SectionHeader: React.FC<{ icon: React.ReactNode; color: string; title: string }> = ({ icon, color, title }) => (
+  <div className="flex items-center gap-2 text-slate-900 font-bold">
+    <div className={`w-6 h-6 bg-${color}-500 rounded-md flex items-center justify-center text-white`}>{icon}</div>
+    <h2>{title}</h2>
+  </div>
+);
+
+const StatRow: React.FC<{ label: string; value: number; sub: string; color: string; icon: LucideIcon }> = ({ label, value, sub, color, icon: Icon }) => (
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+      <div className={`w-5 h-5 rounded-full bg-${color}-500 flex items-center justify-center text-white`}><Icon size={12} /></div>
+      {label}
+    </div>
+    <div className="text-xs font-bold text-slate-900">{value} <span className="text-slate-400 font-normal">{sub}</span></div>
+  </div>
+);
+
+export default function CitizenDashboard() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin" size={32} /></div>}>
+      <CitizenDashboardInner />
+    </Suspense>
+  );
+}
