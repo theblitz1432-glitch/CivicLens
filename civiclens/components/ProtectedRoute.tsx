@@ -6,20 +6,22 @@ import { useAuth } from '../contexts/AuthContext';
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
-  allowedRoles?: ('user' | 'contractor' | 'authority')[];
+  allowedRoles?: ('user' | 'citizen' | 'contractor' | 'authority')[];
 };
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (isLoading) return; // wait until auth state is loaded
+
     if (!isAuthenticated) {
       router.replace('/login');
       return;
     }
 
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    if (allowedRoles && user && !allowedRoles.includes(user.role as any)) {
       switch (user.role) {
         case 'contractor':
           router.replace('/contractor');
@@ -31,11 +33,16 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
           router.replace('/citizen');
       }
     }
-  }, [isAuthenticated, user, allowedRoles, router]);
+  }, [isAuthenticated, isLoading, user, allowedRoles, router]);
 
+  // Show nothing while loading auth state
+  if (isLoading) return null;
+
+  // Not logged in
   if (!isAuthenticated) return null;
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) return null;
+  // Wrong role
+  if (allowedRoles && user && !allowedRoles.includes(user.role as any)) return null;
 
   return <>{children}</>;
 }

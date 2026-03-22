@@ -7,7 +7,7 @@ interface AuthUser {
   name: string;
   email: string;
   phone?: string;
-  role: 'citizen' | 'contractor' | 'authority';
+  role: 'user' | 'citizen' | 'contractor' | 'authority';
   block?: string;
   companyName?: string;
   registrationNo?: string;
@@ -22,6 +22,7 @@ interface AuthContextType {
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
   isLoading: boolean;
+  isAuthenticated: boolean; // ✅ ADDED — fixes ProtectedRoute error
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
   isLoading: true,
+  isAuthenticated: false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -50,7 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // login(token, user) — exactly 2 arguments
   const login = (newToken: string, newUser: AuthUser) => {
     setToken(newToken);
     setUser(newUser);
@@ -63,11 +64,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('civiclens_token');
     localStorage.removeItem('civiclens_user');
+    localStorage.removeItem('civiclens_settings');
     router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      logout,
+      isLoading,
+      isAuthenticated: !!user && !!token, // ✅ ADDED
+    }}>
       {children}
     </AuthContext.Provider>
   );
