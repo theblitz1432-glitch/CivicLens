@@ -38,7 +38,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    // ✅ FIX 2 & 3: suppressHydrationWarning prevents dark-class mismatch flash.
+    // ThemeProvider adds 'dark' or 'light' to this element at runtime.
+    // ALL Tailwind dark: classes now work app-wide because they key off <html>.
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -46,8 +49,28 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="CivicLens" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/logo.png" />
+
+        {/* ✅ Inline script: applies saved theme BEFORE first paint — prevents white flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('vite-ui-theme') || 'system';
+                  var root = document.documentElement;
+                  root.classList.remove('light', 'dark');
+                  if (theme === 'system') {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  root.classList.add(theme);
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
       </head>
-      <body>
+      {/* ✅ body gets dark:bg so the background is dark in dark mode too */}
+      <body className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors">
         <Providers>
           {children}
           <VoiceAgent />

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Mic, MicOff, X, Loader2, Volume2, RefreshCw, Camera, ChevronDown } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -111,13 +111,16 @@ Then append [TAB:overview][SHOW:projects]
 
 STATS: Total complaints=${appData.stats.total}, Resolved=${appData.stats.resolved}, Pending=${appData.stats.pending}
 
-Navigation tags (append at end):
-complaint/shikayat/register -> [TAB:complaints]
-home/dashboard/overview -> [TAB:overview]
-map/naksha -> [TAB:map]
-profile/settings -> [TAB:settings]
-updates/analytics/stats -> [TAB:analytics]
-projects/construction -> [TAB:overview][SHOW:projects]`,
+Navigation tags (append at end - ONLY use these when user explicitly asks to navigate):
+"register complaint" / "file complaint" / "shikayat darj" / "complaint karna" -> [TAB:complaints]
+"go home" / "home page" / "dashboard" -> [TAB:overview]  
+"open map" / "show map" / "naksha" -> [TAB:map]
+"my profile" / "settings" / "account" -> [TAB:settings]
+"updates" / "notifications" / "analytics" -> [TAB:analytics]
+"show projects" / "ongoing work" -> [TAB:overview][SHOW:projects]
+
+IMPORTANT: If user describes a problem (bijli nahi, sadak kharab, pani nahi) WITHOUT saying "complaint register karo",
+do NOT add [TAB:complaints]. Instead ask them if they want to file a complaint.`,
 
     complaint_category: `
 JOB: Detect complaint category from what user says.
@@ -275,11 +278,26 @@ export default function VoiceAgent() {
   }, [])
 
   const fillField = (id: string, value: string) => {
-    const el = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null
+    const el = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
     if (!el) return
-    el.value = value
+
+    // Use React internal setter to properly trigger controlled component onChange
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      el.tagName === 'SELECT'
+        ? window.HTMLSelectElement.prototype
+        : el.tagName === 'TEXTAREA'
+        ? window.HTMLTextAreaElement.prototype
+        : window.HTMLInputElement.prototype,
+      'value'
+    )?.set
+    if (nativeInputValueSetter) {
+      nativeInputValueSetter.call(el, value)
+    } else {
+      el.value = value
+    }
     el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
+    console.log('[FILL]', id, '=', value, '| element:', el.tagName)
   }
 
   const handlePhotoSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,9 +317,17 @@ export default function VoiceAgent() {
   }, [speak])
 
   const handleResponse = useCallback((reply: string, userMsg: string, lang: string) => {
-    // Tab switch
+    // Tab switch - ONLY in idle flow, never during complaint filling
     const tabMatch = reply.match(/\[TAB:(.*?)\]/)
-    if (tabMatch) setTimeout(() => switchTab(tabMatch[1].trim()), 1200)
+    if (tabMatch && flowStateRef.current === 'idle') {
+      const targetTab = tabMatch[1].trim()
+      setTimeout(() => switchTab(targetTab), 1200)
+      // When navigating to complaints, start the complaint flow
+      if (targetTab === 'complaints') {
+        setFlowState('complaint_category')
+        setComplaintData({ category: '', description: '', photoTaken: false })
+      }
+    }
 
     // Show projects modal
     if (reply.includes('[SHOW:projects]')) {
@@ -373,15 +399,15 @@ export default function VoiceAgent() {
     try {
       const firstName = getFirstName(user?.name)
       const prompt = buildPrompt(pathname, flowStateRef.current, firstName, complaintData, lang, langInfo.label, appData)
-      const reply  = await callGroq(GROQ_KEY, newMsgs, prompt)
+      const reply  = await callGroq(GROQ_KEY!, newMsgs, prompt)
       console.log('[AI]', reply)
 
       setMessages(p => [...p, { role: 'assistant', text: reply, lang }])
       speak(reply, lang)
       handleResponse(reply, userMessage, lang)
 
-      // Client-side nav override if AI missed the tag
-      if (navIntent && !reply.includes('[TAB:')) {
+      // Client-side nav override ONLY when idle (never interrupt complaint flow)
+      if (navIntent && !reply.includes('[TAB:') && flowStateRef.current === 'idle') {
         setTimeout(() => {
           switchTab(navIntent.tab)
           if ((navIntent as any).showProjects) setTimeout(() => window.__civicShowProjects?.(), 600)
@@ -482,7 +508,8 @@ export default function VoiceAgent() {
       setMessages([{ role: 'assistant', text: greeting, lang: selectedLang }])
       speak(greeting, selectedLang)
     }, 600)
-  }, [isOpen, user, speak, selectedLang])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedLang])
 
   const handleFullClose = () => {
     stopListening(); window.speechSynthesis.cancel()
@@ -583,10 +610,11 @@ export default function VoiceAgent() {
             <div className="max-w-[85%] px-4 py-2 rounded-2xl bg-indigo-900/40 text-sm italic text-indigo-300">{transcript}</div>
           </div>
         )}
-        <input ref={photoInputRef} id="civic-camera-input" type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoSelected} />
+        <input ref={photoInputRef} id="civic-camera-input" type="file" accept="image/*" capture={"environment" as any} className="hidden" onChange={handlePhotoSelected} />
         {photoPreview && (
           <div className="flex justify-center">
             <div className="relative">
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={photoPreview} alt="complaint" className="w-32 h-32 object-cover rounded-xl border-2 border-emerald-500" />
               <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center"><span className="text-white text-xs">✓</span></div>
             </div>

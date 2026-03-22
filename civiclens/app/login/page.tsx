@@ -1,221 +1,170 @@
 'use client'
-import React, { useState } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'motion/react';
-import { MapPin, User, HardHat, ShieldCheck, Mail, Lock, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Eye, EyeOff, Loader2, Shield, HardHat, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-type Role = 'user' | 'contractor' | 'authority';
+const API = process.env.NEXT_PUBLIC_API_URL;
 
-export default function Login() {
-  const [role, setRole] = useState<Role>('user');
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+type Role = 'citizen' | 'contractor' | 'authority';
 
-  const router = useRouter();
+const ROLE_CONFIG = {
+  citizen: {
+    label: 'Citizen',
+    icon: User,
+    color: 'bg-blue-500',
+    lightColor: 'bg-blue-50',
+    textColor: 'text-blue-600',
+    borderColor: 'border-blue-500',
+    description: 'File and track complaints',
+    endpoint: '/auth/citizen/login',
+    redirect: '/citizen',
+  },
+  contractor: {
+    label: 'Contractor',
+    icon: HardHat,
+    color: 'bg-emerald-500',
+    lightColor: 'bg-emerald-50',
+    textColor: 'text-emerald-600',
+    borderColor: 'border-emerald-500',
+    description: 'Manage projects & reports',
+    endpoint: '/auth/contractor/login',
+    redirect: '/contractor',
+  },
+  authority: {
+    label: 'Authority',
+    icon: Shield,
+    color: 'bg-purple-500',
+    lightColor: 'bg-purple-50',
+    textColor: 'text-purple-600',
+    borderColor: 'border-purple-500',
+    description: 'Monitor & resolve issues',
+    endpoint: '/auth/authority/login',
+    redirect: '/authority',
+  },
+};
+
+export default function LoginPage() {
   const { login } = useAuth();
+  const router    = useRouter();
+  const [role, setRole]         = useState<Role>('citizen');
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+
+  const cfg = ROLE_CONFIG[role];
+  const Icon = cfg.icon;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!email.trim() || !password)
+      return setError('Please enter email and password');
     setLoading(true);
-
-    const result = await login(identifier, password, role);
-
-    setLoading(false);
-
-    if (result.success) {
-      if (role === 'contractor') router.replace('/contractor');
-      else if (role === 'authority') router.replace('/authority');
-      else router.replace('/citizen');
-    } else {
-      setError(result.message || 'Login failed. Please check your credentials.');
+    try {
+      const res  = await fetch(`${API}${cfg.endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        login(data.token, data.user);
+        router.push(cfg.redirect);
+      } else {
+        setError(data.message || 'Login failed');
+      }
+    } catch {
+      setError('Cannot connect to server. Please try again.');
     }
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-[#0a0f1c] transition-colors duration-300">
-      {/* Left side - Branding/Image */}
-      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0">
-          <img 
-            src="https://picsum.photos/seed/civic/1920/1080?blur=2" 
-            alt="City infrastructure" 
-            className="w-full h-full object-cover opacity-40"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/80 to-slate-900/90 mix-blend-multiply" />
-        </div>
-        
-        <div className="relative z-10 p-12 text-white max-w-2xl">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                <img 
-                  src="/logo.png" 
-                  alt="CivicLens Logo" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight">CivicLens</h1>
-            </div>
-            <h2 className="text-5xl font-semibold leading-tight mb-6">
-              Empowering Citizens.<br />
-              <span className="text-indigo-400">Ensuring Accountability.</span>
-            </h2>
-            <p className="text-lg text-slate-300 leading-relaxed">
-              A transparent platform connecting citizens, contractors, and authorities to build better infrastructure together.
-            </p>
-          </motion.div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-md">
 
-      {/* Right side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-24">
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-full max-w-md"
-        >
-          <div className="mb-10 lg:hidden flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-              <img 
-                src="https://picsum.photos/seed/civiclens-logo/200/200" 
-                alt="Logo" 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">CivicLens</h1>
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg overflow-hidden">
+            <img src="/logo.png" alt="CivicLens" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900">CivicLens</h1>
+          <p className="text-slate-500 mt-1">Empowering Citizens. Ensuring Accountability.</p>
+        </div>
+
+        <div className="bg-white rounded-[32px] border border-slate-200 shadow-xl overflow-hidden">
+
+          {/* Role Selector */}
+          <div className="p-2 bg-slate-50 flex gap-1 m-4 rounded-2xl">
+            {(Object.keys(ROLE_CONFIG) as Role[]).map(r => {
+              const RIcon = ROLE_CONFIG[r].icon;
+              return (
+                <button key={r} onClick={() => { setRole(r); setError(''); }}
+                  className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-bold transition-all ${role === r ? `${ROLE_CONFIG[r].color} text-white shadow-lg` : 'text-slate-500 hover:bg-white'}`}>
+                  <RIcon size={18} />
+                  {ROLE_CONFIG[r].label}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Welcome back</h2>
-            <p className="text-slate-500 dark:text-slate-400">Please enter your details to sign in.</p>
+          {/* Role badge */}
+          <div className="px-6 pb-2">
+            <div className={`flex items-center gap-2 ${cfg.lightColor} ${cfg.textColor} px-4 py-2 rounded-xl`}>
+              <Icon size={16} />
+              <span className="text-sm font-semibold">{cfg.label} Login — {cfg.description}</span>
+            </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
-              {error}
-            </div>
-          )}
+          {/* Form */}
+          <form onSubmit={handleLogin} className="p-6 pt-4 space-y-4">
+            <AnimatePresence>
+              {error && (
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm">
+                  <AlertCircle size={16} className="shrink-0" />{error}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* Role Selection */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Select your role</label>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole('user')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
-                    role === 'user' 
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-600' 
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  <User className="w-5 h-5 mb-1.5" />
-                  <span className="text-xs font-medium">Citizen</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('contractor')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
-                    role === 'contractor' 
-                      ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 shadow-sm ring-1 ring-emerald-600' 
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  <HardHat className="w-5 h-5 mb-1.5" />
-                  <span className="text-xs font-medium">Contractor</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('authority')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
-                    role === 'authority' 
-                      ? 'border-amber-600 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 shadow-sm ring-1 ring-amber-600' 
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  <ShieldCheck className="w-5 h-5 mb-1.5" />
-                  <span className="text-xs font-medium">Authority</span>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`Enter your ${cfg.label.toLowerCase()} email`}
+                className={`w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-2 ${cfg.borderColor} transition-all`} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Password</label>
+              <div className="relative">
+                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password"
+                  className={`w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 pr-12 text-sm focus:outline-none focus:border-2 ${cfg.borderColor} transition-all`} />
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {/* Input Fields */}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Email
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <input
-                    type="email"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent bg-white dark:bg-[#111827] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-shadow"
-                    placeholder="Enter your email"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-                  <a href="#" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
-                    Forgot password?
-                  </a>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent bg-white dark:bg-[#111827] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-shadow"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-              {!loading && <ArrowRight className="w-4 h-4" />}
+            <button type="submit" disabled={loading}
+              className={`w-full py-4 ${cfg.color} text-white rounded-2xl font-bold text-base shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all mt-2`}>
+              {loading ? <><Loader2 size={20} className="animate-spin" />Logging in...</> : `Login as ${cfg.label}`}
             </button>
-          </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-center text-sm text-slate-500">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
-                Create an account
-              </Link>
+              <button type="button" onClick={() => router.push(`/register?role=${role}`)} className={`${cfg.textColor} font-bold hover:underline`}>
+                Register here
+              </button>
             </p>
-          </div>
-        </motion.div>
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Hisar District, Haryana · CivicLens v1.0
+        </p>
       </div>
     </div>
   );

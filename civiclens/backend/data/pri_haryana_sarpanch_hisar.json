@@ -1,0 +1,2040 @@
+[{
+  "_id": {
+    "$oid": "69bc36411e972d83da408825"
+  },
+  "district": "HISAR",
+  "panchayat": "ADAMPUR VILLAGE",
+  "address": "VPO ADAMPUR VILLAGE",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "PUNAM CHAND",
+  "gender": "Male",
+  "name": "SUNIL KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408826"
+  },
+  "panchayat": "ASRAWAN",
+  "district": "HISAR",
+  "address": "VPO ASRAWAN",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "8th",
+  "father_husband_name": "ATAMA RAM",
+  "gender": "Female",
+  "name": "MAYA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408827"
+  },
+  "district": "HISAR",
+  "panchayat": "BAGLA",
+  "address": "VP BAGLA",
+  "block": "ADAMPUR",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "PHUSHA RAM",
+  "gender": "Male",
+  "name": "JUGAN KISHOR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408828"
+  },
+  "panchayat": "BHODIA BISHNOIAN",
+  "district": "HISAR",
+  "address": "BHODIA BISHNOIAN",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "BHAJAN LAL",
+  "gender": "Male",
+  "name": "ARVIND KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408829"
+  },
+  "district": "HISAR",
+  "panchayat": "CHABARWAL",
+  "address": "VPO CHABARWAL",
+  "block": "ADAMPUR",
+  "caste": "BC (B)",
+  "education": "10th",
+  "father_husband_name": "MAHIPAL",
+  "gender": "Female",
+  "name": "NIRMLA RANI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40882a"
+  },
+  "panchayat": "CHAUDRIWALI",
+  "district": "HISAR",
+  "address": "VPO CHAUDRIWALI",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "RAM KUMAR",
+  "gender": "Male",
+  "name": "KULDEEP",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40882b"
+  },
+  "district": "HISAR",
+  "panchayat": "CHULI BAGRIAN",
+  "address": "VPO CHULI BAGRIAN",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "VINOD KUMAR",
+  "gender": "Female",
+  "name": "RAJESH KUMARI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40882c"
+  },
+  "panchayat": "CHULI KALAN",
+  "district": "HISAR",
+  "address": "VPO CHULI KALAN",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "RAJINDER SINGH",
+  "gender": "Male",
+  "name": "NARESH KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40882d"
+  },
+  "district": "HISAR",
+  "panchayat": "CHULI KHURD",
+  "address": "VPO CHULI KHURD",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "KRISHAN KUMAR",
+  "gender": "Female",
+  "name": "SEEMA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40882e"
+  },
+  "panchayat": "DAROLI",
+  "district": "HISAR",
+  "address": "VPO DAROLI",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "HARCHAND",
+  "gender": "Male",
+  "name": "MANOJ KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40882f"
+  },
+  "district": "12345678910...",
+  "panchayat": "2",
+  "address": "8",
+  "block": "1",
+  "caste": "6",
+  "education": "7",
+  "father_husband_name": "4",
+  "gender": "5",
+  "name": "3",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408830"
+  },
+  "panchayat": "3",
+  "district": "1",
+  "address": "9",
+  "block": "2",
+  "caste": "7",
+  "education": "8",
+  "father_husband_name": "5",
+  "gender": "6",
+  "name": "4",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408831"
+  },
+  "district": "HISAR",
+  "panchayat": "DHANI MOHABATPUR",
+  "address": "VPO DHANI MOHBBATPUR",
+  "block": "ADAMPUR",
+  "caste": "BC (A)",
+  "education": "10th",
+  "father_husband_name": "VIKAS",
+  "gender": "Female",
+  "name": "KAVITA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408832"
+  },
+  "panchayat": "DHANI SISWAL",
+  "district": "HISAR",
+  "address": "VPO DHANI SISWAL",
+  "block": "ADAMPUR",
+  "caste": "BC (B)",
+  "education": "10th",
+  "father_husband_name": "RAM SWARUP",
+  "gender": "Male",
+  "name": "PALI RAM",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408833"
+  },
+  "district": "HISAR",
+  "panchayat": "GHURSAL",
+  "address": "VPO GHURSAL",
+  "block": "ADAMPUR",
+  "caste": "SC",
+  "education": "8th",
+  "father_husband_name": "KARAN SINGH",
+  "gender": "Female",
+  "name": "RAMKALA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408834"
+  },
+  "panchayat": "KABREL",
+  "district": "HISAR",
+  "address": "VPO KABREL",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "PARHLAD",
+  "gender": "Female",
+  "name": "HEERA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408835"
+  },
+  "district": "HISAR",
+  "panchayat": "KHAIRAMPUR",
+  "address": "VPO KHAIRAMPUR",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "DARIYA SINGH",
+  "gender": "Male",
+  "name": "PARDEEP KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408836"
+  },
+  "panchayat": "KHARA BARWALA",
+  "district": "HISAR",
+  "address": "VPO KHARA BARWALA",
+  "block": "ADAMPUR",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "BALJEET",
+  "gender": "Female",
+  "name": "POONAM DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408837"
+  },
+  "district": "HISAR",
+  "panchayat": "KHOLI",
+  "address": "VPO KOHLI",
+  "block": "ADAMPUR",
+  "caste": "BC (A)",
+  "education": "12th",
+  "father_husband_name": "GULAB SINGH",
+  "gender": "Male",
+  "name": "PAWAN",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408838"
+  },
+  "panchayat": "KISHANGARH",
+  "district": "HISAR",
+  "address": "VPO KISHANGARH",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "8th",
+  "father_husband_name": "VIJAY SINGH",
+  "gender": "Female",
+  "name": "PRIYANKA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408839"
+  },
+  "district": "HISAR",
+  "panchayat": "LADWI",
+  "address": "VPO LADWI",
+  "block": "ADAMPUR",
+  "caste": "BC (A)",
+  "education": "10th",
+  "father_husband_name": "RAMSAWRUP",
+  "gender": "Male",
+  "name": "RAJBIR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40883a"
+  },
+  "panchayat": "MAHALSARA",
+  "district": "HISAR",
+  "address": "",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "NARESH KUMAR",
+  "gender": "Female",
+  "name": "KIRAN BALA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40883b"
+  },
+  "district": "HISAR",
+  "panchayat": "MODA KHERA",
+  "address": "VPO MODAKHERA",
+  "block": "ADAMPUR",
+  "caste": "SC",
+  "education": "8th",
+  "father_husband_name": "SOHANLAL",
+  "gender": "Male",
+  "name": "RAMPARTAP",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40883c"
+  },
+  "panchayat": "MOHABATPUR",
+  "district": "HISAR",
+  "address": "VPO MOHABATPUR",
+  "block": "ADAMPUR",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "CHHOTU RAM",
+  "gender": "Female",
+  "name": "USHA RANI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40883d"
+  },
+  "district": "HISAR",
+  "panchayat": "MOTHSARA",
+  "address": "VPO MOTHSARA",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "RAMSAWRUP",
+  "gender": "Male",
+  "name": "SUSHIL KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40883e"
+  },
+  "panchayat": "SADALPUR",
+  "district": "HISAR",
+  "address": "VPO SADALPUR",
+  "block": "ADAMPUR",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "RESHMA RAM",
+  "gender": "Male",
+  "name": "NATHU RAM",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40883f"
+  },
+  "district": "HISAR",
+  "panchayat": "SISWAL",
+  "address": "VPO SISWAL",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "8th",
+  "father_husband_name": "BALWANT SINGH",
+  "gender": "Female",
+  "name": "LAXMI DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408840"
+  },
+  "panchayat": "TELANWALI",
+  "district": "HISAR",
+  "address": "VPO TELANWALI",
+  "block": "ADAMPUR",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "RAJENDER SINGH",
+  "gender": "Male",
+  "name": "DEEPAK KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408841"
+  },
+  "district": "HISAR",
+  "panchayat": "AGROHA",
+  "address": "AGROHA",
+  "block": "AGROHA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "DAYANAND",
+  "gender": "Male",
+  "name": "ATMA RAM",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408842"
+  },
+  "panchayat": "BHANA",
+  "district": "HISAR",
+  "address": "V.P.O. BHANA",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "SHYONARAYAN",
+  "gender": "Male",
+  "name": "SUBHASH GODARA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408843"
+  },
+  "district": "HISAR",
+  "panchayat": "CHIKANWAS",
+  "address": "CHIKNWAS",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "VAKIL KUMAR",
+  "gender": "Female",
+  "name": "ANJU BALA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408844"
+  },
+  "panchayat": "DURJANPUR",
+  "district": "HISAR",
+  "address": "V.P.O. DURJANPUR",
+  "block": "AGROHA",
+  "caste": "SC",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "VIJENDER",
+  "gender": "Female",
+  "name": "MAYA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408845"
+  },
+  "district": "HISAR",
+  "panchayat": "FRANSI",
+  "address": "FRANSI",
+  "block": "AGROHA",
+  "caste": "SC",
+  "education": "12th",
+  "father_husband_name": "RAMESHWAR",
+  "gender": "Male",
+  "name": "PALA RAM",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408846"
+  },
+  "panchayat": "JAGAN",
+  "district": "HISAR",
+  "address": "VPO JAGAN",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "Graduation or Above(Please Specify)",
+  "father_husband_name": "MUKESH KUMAR",
+  "gender": "Male",
+  "name": "SHAMSHER",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408847"
+  },
+  "district": "HISAR",
+  "panchayat": "KALIRAWAN",
+  "address": "",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "RAVI KUMAR",
+  "gender": "Female",
+  "name": "BIMLA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408848"
+  },
+  "panchayat": "KANOH",
+  "district": "HISAR",
+  "address": "",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "PRITHVI SINGH",
+  "gender": "Male",
+  "name": "SURENDER SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408849"
+  },
+  "district": "HISAR",
+  "panchayat": "KHASA MAHAJANAN",
+  "address": "V.P.O. KHASA MAHAJAN",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "Master of Science - M.Sc.",
+  "father_husband_name": "RAJ KUMAR",
+  "gender": "Female",
+  "name": "MANJU BALA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40884a"
+  },
+  "panchayat": "KIRARA",
+  "district": "HISAR",
+  "address": "",
+  "block": "AGROHA",
+  "caste": "BC (B)",
+  "education": "10th",
+  "father_husband_name": "SAJAN SINGH",
+  "gender": "Male",
+  "name": "AJAY",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40884b"
+  },
+  "district": "HISAR",
+  "panchayat": "KIRMARA",
+  "address": "V.P.O. KIRMARA",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "TEK CHAND",
+  "gender": "Female",
+  "name": "DARSHANA KUMARI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40884c"
+  },
+  "panchayat": "KIRORI",
+  "district": "HISAR",
+  "address": "",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "JAI KISHAN",
+  "gender": "Male",
+  "name": "TELU RAM",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40884d"
+  },
+  "district": "HISAR",
+  "panchayat": "KULERI",
+  "address": "",
+  "block": "AGROHA",
+  "caste": "SC",
+  "education": "8th",
+  "father_husband_name": "RAJIV",
+  "gender": "Female",
+  "name": "JANKI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40884e"
+  },
+  "panchayat": "LANDHARI",
+  "district": "HISAR",
+  "address": "LANDHARI",
+  "block": "AGROHA",
+  "caste": "BC (A)",
+  "education": "10th",
+  "father_husband_name": "RAJESH KUMAR",
+  "gender": "Female",
+  "name": "SUMAN BALA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40884f"
+  },
+  "district": "HISAR",
+  "panchayat": "MIRPUR",
+  "address": "VILL MIRPUR",
+  "block": "AGROHA",
+  "caste": "BC (A)",
+  "education": "10th",
+  "father_husband_name": "SHOEKRAN",
+  "gender": "Male",
+  "name": "ROHTASH KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408850"
+  },
+  "panchayat": "NANGTHALA",
+  "district": "HISAR",
+  "address": "V.P.O. NANGTHALA",
+  "block": "AGROHA",
+  "caste": "BC (A)",
+  "education": "12th",
+  "father_husband_name": "JAGDISH",
+  "gender": "Female",
+  "name": "MONIKA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408851"
+  },
+  "district": "HISAR",
+  "panchayat": "SABARWAS",
+  "address": "VPO SABARWAS",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "SOHAN LAL",
+  "gender": "Male",
+  "name": "SUSHIL KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408852"
+  },
+  "panchayat": "SANDOL",
+  "district": "HISAR",
+  "address": "VPO SANDOL",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "8th",
+  "father_husband_name": "SARJEET SINGH",
+  "gender": "Female",
+  "name": "SHEELA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408853"
+  },
+  "district": "HISAR",
+  "panchayat": "SARANGPUR",
+  "address": "V.P.O. SARANGPUR",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "MAN SINGH",
+  "gender": "Male",
+  "name": "RAM SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408854"
+  },
+  "panchayat": "SHAMSUKH",
+  "district": "HISAR",
+  "address": "",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "MANGEJ SINGH",
+  "gender": "Female",
+  "name": "ANURADHA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408855"
+  },
+  "district": "HISAR",
+  "panchayat": "SIWANI BOLAN",
+  "address": "",
+  "block": "AGROHA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "BASAU RAM",
+  "gender": "Male",
+  "name": "ROHTASH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408856"
+  },
+  "panchayat": "THASKA",
+  "district": "HISAR",
+  "address": "THASKA",
+  "block": "AGROHA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "RAJENDER SINGH",
+  "gender": "Male",
+  "name": "AJMER SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408857"
+  },
+  "district": "HISAR",
+  "panchayat": "BADA KHERA",
+  "address": "VPO BHADA KHERA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "BHARATH SINGH",
+  "gender": "Male",
+  "name": "SUMER",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408858"
+  },
+  "panchayat": "BADHAWAR",
+  "district": "HISAR",
+  "address": "VPO BADHAWAR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "8th",
+  "father_husband_name": "SUNIL KUMAR",
+  "gender": "Female",
+  "name": "REMAN",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408859"
+  },
+  "district": "HISAR",
+  "panchayat": "BADO PATTI",
+  "address": "VPO BADO PATTI",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "Post Graduate",
+  "father_husband_name": "PRITHVI SINGH",
+  "gender": "Male",
+  "name": "PAWAN KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40885a"
+  },
+  "panchayat": "BAHBALPUR",
+  "district": "HISAR",
+  "address": "BEHBALPUR",
+  "block": "BARWALA",
+  "caste": "BC (A)",
+  "education": "12th",
+  "father_husband_name": "TARACHAND",
+  "gender": "Male",
+  "name": "RAMESH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40885b"
+  },
+  "district": "HISAR",
+  "panchayat": "BALAK",
+  "address": "VPO BALAK",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "KRISHAN KUMAR",
+  "gender": "Female",
+  "name": "SUDESH RANI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40885c"
+  },
+  "panchayat": "BANBHORI",
+  "district": "HISAR",
+  "address": "BANBHORI",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "Graduation or Above(Please Specify)",
+  "father_husband_name": "JORA SINGH",
+  "gender": "Female",
+  "name": "MINAKSHI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40885d"
+  },
+  "district": "HISAR",
+  "panchayat": "BHANI BHADSHAHPUR",
+  "address": "VPO BHANIBHADSHAHPUR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "NATHU RAM",
+  "gender": "Male",
+  "name": "NIHAL SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40885e"
+  },
+  "panchayat": "BICHPARI",
+  "district": "HISAR",
+  "address": "BICHPARI",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "JHANDU RAM",
+  "gender": "Male",
+  "name": "SATBIR SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40885f"
+  },
+  "district": "HISAR",
+  "panchayat": "BOBUA",
+  "address": "V.P.O. BOBUA",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "8th",
+  "father_husband_name": "DAYANAND",
+  "gender": "Female",
+  "name": "ANITA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408860"
+  },
+  "panchayat": "BUGANA",
+  "district": "HISAR",
+  "address": "VPO BUGANA",
+  "block": "BARWALA",
+  "caste": "BC (A)",
+  "education": "12th",
+  "father_husband_name": "SONU",
+  "gender": "Female",
+  "name": "USHA RANI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408861"
+  },
+  "district": "HISAR",
+  "panchayat": "BYANA KHERA",
+  "address": "VPO BYANA KHERA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "KALI RAM",
+  "gender": "Male",
+  "name": "KRISHAN",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408862"
+  },
+  "panchayat": "CHHAN",
+  "district": "HISAR",
+  "address": "VPO CHHAN",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "HARPAL",
+  "gender": "Female",
+  "name": "SUNITA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408863"
+  },
+  "district": "HISAR",
+  "panchayat": "DEVIGARH PUNIA",
+  "address": "VPO DEVIGARH PUNIA",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "DESH RAJ",
+  "gender": "Male",
+  "name": "MANOJ KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408864"
+  },
+  "panchayat": "DHAD",
+  "district": "HISAR",
+  "address": "VPO DHAD",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "ANOOP SINGH",
+  "gender": "Female",
+  "name": "SUMAN DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408865"
+  },
+  "district": "HISAR",
+  "panchayat": "DHANI GARAN",
+  "address": "VPO DHANI GARAN",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "CHANDI RAM",
+  "gender": "Male",
+  "name": "SONU DUGGAL",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408866"
+  },
+  "panchayat": "DHANI KHAN BAHADUR",
+  "district": "HISAR",
+  "address": "VPO DHANI KHAN BAHADUR",
+  "block": "BARWALA",
+  "caste": "BC (A)",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "PURAN CHAND",
+  "gender": "Male",
+  "name": "VIJAY SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408867"
+  },
+  "district": "HISAR",
+  "panchayat": "DHANI MIRDAD",
+  "address": "VPO DHANI MIRDAD",
+  "block": "BARWALA",
+  "caste": "BC (A)",
+  "education": "8th",
+  "father_husband_name": "SOMBIR",
+  "gender": "Female",
+  "name": "DURGE DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408868"
+  },
+  "panchayat": "DHANI PREM NAGAR",
+  "district": "HISAR",
+  "address": "DHANI PREM NAGAR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "BHAG SINGH",
+  "gender": "Male",
+  "name": "SAJJAN KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408869"
+  },
+  "district": "HISAR",
+  "panchayat": "DHINGTANA",
+  "address": "VILLAGE DHINGTANA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "KRISHAN KUMAR",
+  "gender": "Female",
+  "name": "RAMRATI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40886a"
+  },
+  "panchayat": "GAIBIPUR",
+  "district": "HISAR",
+  "address": "GAIBIPUR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "OM PARKASH",
+  "gender": "Male",
+  "name": "PAWAN KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40886b"
+  },
+  "district": "HISAR",
+  "panchayat": "GIANPURA",
+  "address": "VPO GIANPURA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "8th",
+  "father_husband_name": "MANJEET",
+  "gender": "Female",
+  "name": "SANTOSH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40886c"
+  },
+  "panchayat": "GURANA",
+  "district": "HISAR",
+  "address": "VPO GURANA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "HAR NARAYAN",
+  "gender": "Male",
+  "name": "RAM AVTAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40886d"
+  },
+  "district": "HISAR",
+  "panchayat": "HASANGARH",
+  "address": "VPO HASANGARH",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "SURENDER",
+  "gender": "Female",
+  "name": "MONIKA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40886e"
+  },
+  "panchayat": "JEWARA",
+  "district": "HISAR",
+  "address": "VPO JEWARA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "RAJBIR",
+  "gender": "Female",
+  "name": "EKTA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40886f"
+  },
+  "district": "HISAR",
+  "panchayat": "JUGLAN",
+  "address": "JUGLAN",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "AJAYKUMAR",
+  "gender": "Female",
+  "name": "AARTI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408870"
+  },
+  "panchayat": "KHANPUR",
+  "district": "HISAR",
+  "address": "VPO KHANPUR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "Graduation or Above(Please Specify)",
+  "father_husband_name": "DEICHAND",
+  "gender": "Male",
+  "name": "RAMPAL",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408871"
+  },
+  "district": "HISAR",
+  "panchayat": "KHARAK PUNIA",
+  "address": "VPO KHARAK PUNIA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "NAPHE SINGH",
+  "gender": "Female",
+  "name": "KRISHNA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408872"
+  },
+  "panchayat": "KHARAKARA",
+  "district": "HISAR",
+  "address": "VPO KHARAKARA",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "8th",
+  "father_husband_name": "POLA RAM",
+  "gender": "Male",
+  "name": "SUBHASH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408873"
+  },
+  "district": "HISAR",
+  "panchayat": "KHEDAR",
+  "address": "VPO KHEDAR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "SHAMSHER SINGH",
+  "gender": "Female",
+  "name": "RENU RANI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408874"
+  },
+  "panchayat": "KHERI BARKI",
+  "district": "HISAR",
+  "address": "KHERI BARKI",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "SHANU RAM",
+  "gender": "Male",
+  "name": "HANSRAJ",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408875"
+  },
+  "district": "HISAR",
+  "panchayat": "KHUMBHA KHERA",
+  "address": "VPO KHUMBHA KHERA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "SURAJMAL SINGH",
+  "gender": "Male",
+  "name": "VINOD KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408876"
+  },
+  "panchayat": "MATLODA",
+  "district": "HISAR",
+  "address": "V.P.O.MATLODA",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "JAGBIR",
+  "gender": "Female",
+  "name": "SUSHILA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408877"
+  },
+  "district": "HISAR",
+  "panchayat": "NAYAGAON",
+  "address": "VPO NAYA GAON, TEH BARWALA , DISTT HISAR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "RAJA RAM",
+  "gender": "Male",
+  "name": "ANOOP",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408878"
+  },
+  "panchayat": "PANGHAL",
+  "district": "HISAR",
+  "address": "VPO PANGHAL",
+  "block": "BARWALA",
+  "caste": "BC (A)",
+  "education": "10th",
+  "father_husband_name": "MONU",
+  "gender": "Female",
+  "name": "MONIKA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408879"
+  },
+  "district": "HISAR",
+  "panchayat": "PANIHERI",
+  "address": "VPO PANIHARI TEH KHERI JAJLAB DISTT HISAR",
+  "block": "BARWALA",
+  "caste": "BC (A)",
+  "education": "10th",
+  "father_husband_name": "CHANDER BHAN",
+  "gender": "Male",
+  "name": "SATYWAN",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40887a"
+  },
+  "panchayat": "RAJLI",
+  "district": "HISAR",
+  "address": "VPO RAJLI",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "8th",
+  "father_husband_name": "WAZIR SINGH",
+  "gender": "Female",
+  "name": "SUNITA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40887b"
+  },
+  "district": "HISAR",
+  "panchayat": "SANDLANA",
+  "address": "VPO SANDLANA",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "8th",
+  "father_husband_name": "DHARAMBIR SINGH",
+  "gender": "Male",
+  "name": "ISHWER SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40887c"
+  },
+  "panchayat": "SARASAUD",
+  "district": "HISAR",
+  "address": "SARSOD",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "PARDEEP",
+  "gender": "Female",
+  "name": "SUNITA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40887d"
+  },
+  "district": "HISAR",
+  "panchayat": "SARSANA",
+  "address": "VPO SARSANA",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "12th",
+  "father_husband_name": "RAVINDER KUMAR",
+  "gender": "Female",
+  "name": "ANITA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40887e"
+  },
+  "panchayat": "SINDHAR",
+  "district": "HISAR",
+  "address": "VPO SINDHAR",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "AMICHAND",
+  "gender": "Male",
+  "name": "SUNDER SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40887f"
+  },
+  "district": "HISAR",
+  "panchayat": "SOTHA",
+  "address": "VPO SOTHA TEH KHERI JAJLAB DISTT HISAR",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "Graduation or Above(Please Specify)",
+  "father_husband_name": "GANDHI RAM",
+  "gender": "Male",
+  "name": "SURENDER",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408880"
+  },
+  "panchayat": "SULKHANI",
+  "district": "HISAR",
+  "address": "VILLAGE SULKHANI",
+  "block": "BARWALA",
+  "caste": "General",
+  "education": "12th",
+  "father_husband_name": "AMIT KUMAR",
+  "gender": "Female",
+  "name": "GEETA RANI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408881"
+  },
+  "district": "HISAR",
+  "panchayat": "SURHERA",
+  "address": "V.P.O. SARHERA",
+  "block": "BARWALA",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "PAWAN KUMAR",
+  "gender": "Female",
+  "name": "BIMLA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408882"
+  },
+  "panchayat": "ANIPURA",
+  "district": "HISAR",
+  "address": "VPO ANIPURA",
+  "block": "HANSI-I",
+  "caste": "SC",
+  "education": "10th",
+  "father_husband_name": "MAN SINGH",
+  "gender": "Male",
+  "name": "SATPAL SINGH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408883"
+  },
+  "district": "HISAR",
+  "panchayat": "BANDA HERI",
+  "address": "VILLAGE BANDAHERI BLOCK HANSI-1 DISTT. HISAR",
+  "block": "HANSI-I",
+  "caste": "General",
+  "education": "Post Graduate",
+  "father_husband_name": "DALBIR SINGH",
+  "gender": "Male",
+  "name": "MANISH KUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408884"
+  },
+  "panchayat": "BARA JAGGAMAL",
+  "district": "HISAR",
+  "address": "VPO BARAJAGGAMAL",
+  "block": "HANSI-I",
+  "caste": "BC (B)",
+  "education": "10th",
+  "father_husband_name": "SATISH KUMAR",
+  "gender": "Female",
+  "name": "KAMLESH",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408885"
+  },
+  "district": "HISAR",
+  "panchayat": "BHATLA",
+  "address": "VPO BHATLA",
+  "block": "HANSI-I",
+  "caste": "General",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "DALBIR",
+  "gender": "Male",
+  "name": "SUNIL SH DALBIR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408886"
+  },
+  "panchayat": "BIR HANSI",
+  "district": "HISAR",
+  "address": "VPO BIR HANSI",
+  "block": "HANSI-I",
+  "caste": "SC",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "VIRENDER SINGH",
+  "gender": "Female",
+  "name": "MAMTA",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408887"
+  },
+  "district": "HISAR",
+  "panchayat": "CHANOT",
+  "address": "VPO CHANNOT",
+  "block": "HANSI-I",
+  "caste": "SC",
+  "education": "12th",
+  "father_husband_name": "HIMANSHU",
+  "gender": "Female",
+  "name": "SARASWATI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408888"
+  },
+  "panchayat": "DATTA",
+  "district": "HISAR",
+  "address": "DATTA",
+  "block": "HANSI-I",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "CHANDU LAL",
+  "gender": "Male",
+  "name": "RAMKUMAR",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da408889"
+  },
+  "district": "HISAR",
+  "panchayat": "DAYAL SINGH COLONY",
+  "address": "VPO DAYAL SINGH COLONY",
+  "block": "HANSI-I",
+  "caste": "SC",
+  "education": "Bachelor of Arts - B.A.",
+  "father_husband_name": "RAJENDER SINGH",
+  "gender": "Male",
+  "name": "SHYAM",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+},
+{
+  "_id": {
+    "$oid": "69bc36411e972d83da40888a"
+  },
+  "panchayat": "DEPAL",
+  "district": "HISAR",
+  "address": "VILLAGE DEPAL",
+  "block": "HANSI-I",
+  "caste": "General",
+  "education": "10th",
+  "father_husband_name": "BHUPENDER SINGH",
+  "gender": "Female",
+  "name": "SUMITRA DEVI",
+  "role": "sarpanch",
+  "scraped_at": {
+    "$date": "2026-03-19T17:45:14.995Z"
+  },
+  "source": "http://priharyana.nic.in",
+  "ward": null
+}]

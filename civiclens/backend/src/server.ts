@@ -7,6 +7,7 @@ import otpRoutes from './routes/otp';
 import complaintRoutes from './routes/complaints';
 import civicRoutes from './routes/civic';
 import notificationRoutes from './routes/notifications';
+import ratingRoutes from './routes/ratings';
 
 
 dotenv.config();
@@ -20,6 +21,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use('/api/ratings', ratingRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/complaints', complaintRoutes);

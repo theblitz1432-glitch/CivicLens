@@ -1,77 +1,76 @@
 'use client'
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 
-type User = {
+interface AuthUser {
   id: string;
   name: string;
-  role: 'user' | 'contractor' | 'authority';
   email: string;
-};
+  phone?: string;
+  role: 'citizen' | 'contractor' | 'authority';
+  block?: string;
+  companyName?: string;
+  registrationNo?: string;
+  designation?: string;
+  department?: string;
+  isApproved?: boolean;
+}
 
-type AuthContextType = {
-  user: User | null;
-  login: (email: string, password: string, role: string) => Promise<{ success: boolean; message?: string }>;
+interface AuthContextType {
+  user: AuthUser | null;
+  token: string | null;
+  login: (token: string, user: AuthUser) => void;
   logout: () => void;
-  isAuthenticated: boolean;
-};
+  isLoading: boolean;
+}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  token: null,
+  login: () => {},
+  logout: () => {},
+  isLoading: true,
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser]     = useState<AuthUser | null>(null);
+  const [token, setToken]   = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('civiclens_user');
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        setTimeout(() => setUser(parsed), 0);
+      const savedToken = localStorage.getItem('civiclens_token');
+      const savedUser  = localStorage.getItem('civiclens_user');
+      if (savedToken && savedUser) {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
       }
-    } catch {
-      localStorage.removeItem('civiclens_user');
-    }
+    } catch {}
+    setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string, role: string): Promise<{ success: boolean; message?: string }> => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setUser(data.user);
-        localStorage.setItem('civiclens_user', JSON.stringify(data.user));
-        localStorage.setItem('civiclens_token', data.token);
-        return { success: true };
-      } else {
-        return { success: false, message: data.message };
-      }
-    } catch (error) {
-      return { success: false, message: 'Server error' };
-    }
+  // login(token, user) — exactly 2 arguments
+  const login = (newToken: string, newUser: AuthUser) => {
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('civiclens_token', newToken);
+    localStorage.setItem('civiclens_user', JSON.stringify(newUser));
   };
 
   const logout = () => {
+    setToken(null);
     setUser(null);
-    localStorage.removeItem('civiclens_user');
     localStorage.removeItem('civiclens_token');
+    localStorage.removeItem('civiclens_user');
+    router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);
