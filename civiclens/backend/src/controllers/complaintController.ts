@@ -29,7 +29,34 @@ const getDistanceMeters = (lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-// ── STAGE 0: Google Vision API — Fake/Real Image Detection ─────────────────
+// ── Check if image is too dark, blank, or low quality ─────────────────────
+const checkImageQuality = (base64Image: string): { valid: boolean; reason: string } => {
+  try {
+    const imageData = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+    const buffer = Buffer.from(imageData, 'base64');
+    const sizeKB = buffer.length / 1024;
+
+    console.log(`[ImageQuality] Size: ${sizeKB.toFixed(1)}KB`);
+
+    // Too small = black/blank/corrupted image
+    if (sizeKB < 8) {
+      return { valid: false, reason: `Photo is too dark or blank (${sizeKB.toFixed(1)}KB). Please take a clear photo in good lighting.` };
+    }
+
+    // Check for suspiciously uniform image (solid color)
+    // JPEG black image compresses to very small size
+    if (sizeKB < 15 && imageData.length < 20000) {
+      return { valid: false, reason: 'Photo appears to be a solid color or blank. Please take a real photo of the issue.' };
+    }
+
+    return { valid: true, reason: 'Image quality OK' };
+  } catch (err) {
+    console.error('[ImageQuality] Error:', err);
+    return { valid: true, reason: 'Quality check skipped' };
+  }
+};
+
+// ── STAGE 0A: Google Vision API ────────────────────────────────────────────
 const verifyWithGoogleVision = async (base64Image: string, category: string): Promise<{
   isFake: boolean;
   isScreenshot: boolean;
@@ -41,13 +68,11 @@ const verifyWithGoogleVision = async (base64Image: string, category: string): Pr
   try {
     const apiKey = process.env.GOOGLE_VISION_API_KEY;
     if (!apiKey) {
-      console.log('[Vision] No API key — skipping Google Vision check');
+      console.log('[Vision] No API key — skipping');
       return { isFake: false, isScreenshot: false, categoryMatch: true, confidence: 80, labels: [], reason: 'Vision API not configured' };
     }
 
-    // Remove data URL prefix if present
     const imageData = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
-
     const response = await axios.post(
       `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
       {
@@ -56,7 +81,6 @@ const verifyWithGoogleVision = async (base64Image: string, category: string): Pr
           features: [
             { type: 'LABEL_DETECTION', maxResults: 20 },
             { type: 'SAFE_SEARCH_DETECTION' },
-            { type: 'IMAGE_PROPERTIES' },
             { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
           ],
         }],
@@ -66,21 +90,24 @@ const verifyWithGoogleVision = async (base64Image: string, category: string): Pr
 
     const result = response.data.responses[0];
     const labels: string[] = (result.labelAnnotations || []).map((l: any) => l.description.toLowerCase());
-    const safeSearch = result.safeSearchAnnotation || {};
     const objects: string[] = (result.localizedObjectAnnotations || []).map((o: any) => o.name.toLowerCase());
 
-    // Detect screenshots — uniform colors, text-heavy, no natural scene
-    const screenshotIndicators = ['screenshot', 'text', 'font', 'web page', 'software', 'display device', 'multimedia'];
-    const isScreenshot = screenshotIndicators.some(s => labels.includes(s)) ||
-      (labels.includes('text') && !labels.includes('road') && !labels.includes('infrastructure'));
+    const screenshotIndicators = ['screenshot', 'web page', 'software', 'display device', 'multimedia', 'font'];
+    const isScreenshot = screenshotIndicators.some(s => labels.includes(s));
 
-    // Detect AI-generated/fake — too perfect, no noise, CGI indicators
-    const fakeIndicators = ['cgi', 'computer graphics', 'digital art', 'illustration', 'cartoon', 'animation', 'render'];
+    const fakeIndicators = ['cgi', 'computer graphics', 'digital art', 'illustration', 'cartoon', 'animation'];
     const isFake = fakeIndicators.some(f => labels.includes(f));
 
-    // Category matching using Vision labels
+    // Check for black/dark image via labels
+    const darkIndicators = ['black', 'darkness', 'night', 'black-and-white'];
+    const isDark = darkIndicators.every(d => labels.includes(d)) && labels.length < 5;
+
+    if (isDark) {
+      return { isFake: true, isScreenshot: false, categoryMatch: false, confidence: 90, labels, reason: 'Photo is too dark — please take photo in good lighting' };
+    }
+
     const categoryKeywords: Record<string, string[]> = {
-      'Road & Infrastructure': ['road', 'street', 'asphalt', 'pavement', 'pothole', 'crack', 'infrastructure', 'highway', 'sidewalk', 'concrete'],
+      'Road & Infrastructure': ['road', 'street', 'asphalt', 'pavement', 'pothole', 'crack', 'infrastructure', 'highway', 'sidewalk', 'concrete', 'construction'],
       'Water Supply': ['water', 'pipe', 'flood', 'leak', 'puddle', 'drainage', 'sewage', 'waterlogging', 'tap'],
       'Electricity': ['electricity', 'wire', 'cable', 'pole', 'transformer', 'power line', 'electric'],
       'Sanitation': ['garbage', 'waste', 'trash', 'dirt', 'pollution', 'dump', 'litter', 'sewage'],
@@ -94,12 +121,11 @@ const verifyWithGoogleVision = async (base64Image: string, category: string): Pr
     const matchCount = expectedKeywords.filter(k => allDetected.some(d => d.includes(k))).length;
     const categoryMatch = matchCount >= 1 || expectedKeywords.length === 0;
 
-    // Confidence score based on label scores
     const avgScore = result.labelAnnotations?.length > 0
       ? result.labelAnnotations.reduce((sum: number, l: any) => sum + l.score, 0) / result.labelAnnotations.length * 100
       : 75;
 
-    console.log(`[Vision] Labels: ${labels.slice(0, 5).join(', ')} | Category match: ${categoryMatch} | Fake: ${isFake} | Screenshot: ${isScreenshot}`);
+    console.log(`[Vision] Labels: ${labels.slice(0, 5).join(', ')} | Match: ${categoryMatch} | Fake: ${isFake}`);
 
     return {
       isFake,
@@ -108,18 +134,17 @@ const verifyWithGoogleVision = async (base64Image: string, category: string): Pr
       confidence: Math.round(avgScore),
       labels: labels.slice(0, 10),
       reason: isFake ? 'AI-generated image detected' :
-        isScreenshot ? 'Screenshot detected, not a real photo' :
+        isScreenshot ? 'Screenshot detected' :
         !categoryMatch ? `Photo doesn't show ${category} issue` :
         `Verified: ${labels.slice(0, 3).join(', ')}`,
     };
   } catch (err: any) {
     console.error('[Vision] Error:', err?.response?.data || err.message);
-    // Don't fail the whole pipeline if Vision API errors
     return { isFake: false, isScreenshot: false, categoryMatch: true, confidence: 70, labels: [], reason: 'Vision check failed — auto-approved' };
   }
 };
 
-// ── STAGE 0B: Hugging Face — Fake Image Classifier ─────────────────────────
+// ── STAGE 0B: HuggingFace AI Image Detector ────────────────────────────────
 const verifyWithHuggingFace = async (base64Image: string): Promise<{
   isAIGenerated: boolean;
   confidence: number;
@@ -128,15 +153,13 @@ const verifyWithHuggingFace = async (base64Image: string): Promise<{
   try {
     const hfToken = process.env.HUGGING_FACE_TOKEN;
     if (!hfToken) {
-      console.log('[HuggingFace] No token — skipping HF check');
+      console.log('[HuggingFace] No token — skipping');
       return { isAIGenerated: false, confidence: 80, reason: 'HF not configured' };
     }
 
-    // Convert base64 to buffer
     const imageData = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
     const imageBuffer = Buffer.from(imageData, 'base64');
 
-    // Use Hugging Face AI image detector model
     const response = await axios.post(
       'https://router.huggingface.co/hf-inference/models/umm-maybe/AI-image-detector',
       imageBuffer,
@@ -152,21 +175,17 @@ const verifyWithHuggingFace = async (base64Image: string): Promise<{
     const results = response.data;
     console.log('[HuggingFace] Result:', JSON.stringify(results));
 
-    // Model returns array like [{ label: 'artificial', score: 0.95 }, { label: 'human', score: 0.05 }]
     if (Array.isArray(results)) {
       const artificialResult = results.find((r: any) =>
-        r.label?.toLowerCase().includes('artificial') ||
-        r.label?.toLowerCase().includes('fake') ||
-        r.label?.toLowerCase().includes('ai')
+        r.label?.toLowerCase().includes('artificial') || r.label?.toLowerCase().includes('fake') || r.label?.toLowerCase().includes('ai')
       );
       const humanResult = results.find((r: any) =>
-        r.label?.toLowerCase().includes('human') ||
-        r.label?.toLowerCase().includes('real')
+        r.label?.toLowerCase().includes('human') || r.label?.toLowerCase().includes('real')
       );
 
       const artificialScore = artificialResult?.score || 0;
       const humanScore = humanResult?.score || 1;
-      const isAIGenerated = artificialScore > 0.7; // 70% threshold
+      const isAIGenerated = artificialScore > 0.92; // 92% threshold
 
       return {
         isAIGenerated,
@@ -206,7 +225,23 @@ export const verifyPhotoWithAI = async (
   aiDetectionScore?: number;
 }> => {
   try {
-    // ── Run Google Vision + Hugging Face in parallel ──────────────────────
+    // ── STEP 0: Image quality check FIRST (fast, no API call) ─────────────
+    const qualityCheck = checkImageQuality(base64Image);
+    if (!qualityCheck.valid) {
+      console.log(`[AI] Image quality check failed: ${qualityCheck.reason}`);
+      return {
+        isReal: false,
+        isCorrectCategory: false,
+        geotagValid: true,
+        damagePercentage: 0,
+        damageType: 'none',
+        locationMatch: true,
+        reason: qualityCheck.reason,
+        details: 'Image failed quality check before AI analysis',
+      };
+    }
+
+    // ── STEP 1: Run Google Vision + HuggingFace in parallel ───────────────
     console.log('[AI] Starting parallel verification...');
     const [visionResult, hfResult] = await Promise.all([
       verifyWithGoogleVision(base64Image, category),
@@ -216,7 +251,7 @@ export const verifyPhotoWithAI = async (
     console.log(`[AI] Vision: fake=${visionResult.isFake}, screenshot=${visionResult.isScreenshot}, categoryMatch=${visionResult.categoryMatch}`);
     console.log(`[AI] HuggingFace: aiGenerated=${hfResult.isAIGenerated}, confidence=${hfResult.confidence}`);
 
-    // ── Reject if fake/screenshot detected by either service ─────────────
+    // ── Reject fake/AI/screenshot ─────────────────────────────────────────
     if (visionResult.isFake || hfResult.isAIGenerated) {
       return {
         isReal: false,
@@ -247,14 +282,14 @@ export const verifyPhotoWithAI = async (
       };
     }
 
-    // ── Find nearest project for location comparison ──────────────────────
+    // ── Find nearest project ──────────────────────────────────────────────
     let projectLocation = { lat: 0, lng: 0 };
     let contractorAfterPhoto = '';
     let projectTitle = '';
 
     if (projectId) {
       const proj = await Project.findById(projectId);
-      if (proj?.afterPhoto) contractorAfterPhoto = proj.afterPhoto;
+      if ((proj as any)?.afterPhoto) contractorAfterPhoto = (proj as any).afterPhoto;
       projectTitle = proj?.title || '';
     } else {
       const projects = await Project.find({});
@@ -272,11 +307,15 @@ export const verifyPhotoWithAI = async (
       }
     }
 
-    // ── Groq Vision — Damage analysis ────────────────────────────────────
+    // ── Groq Vision — Damage analysis ─────────────────────────────────────
     let groqResult = {
-      isReal: true, isCorrectCategory: visionResult.categoryMatch,
-      damagePercentage: 0, damageType: 'unknown',
-      reason: 'Photo verified', details: '', comparisonReport: '',
+      isReal: true,
+      isCorrectCategory: visionResult.categoryMatch,
+      damagePercentage: 0,
+      damageType: 'unknown',
+      reason: 'Photo verified',
+      details: '',
+      comparisonReport: '',
     };
 
     if (process.env.GROQ_API_KEY) {
@@ -293,8 +332,8 @@ Analyze this photo and return ONLY valid JSON (no markdown):
 }
 Category reported: "${category}"
 Description: "${description}"
-Google Vision already confirmed: real photo, labels: ${visionResult.labels.slice(0, 5).join(', ')}
-Focus on: Does this photo show "${category}" damage? How severe?`;
+Google Vision labels: ${visionResult.labels.slice(0, 5).join(', ')}
+Focus: Does photo show "${category}" damage? Severity?`;
 
         const stage1Res = await axios.post(
           'https://api.groq.com/openai/v1/chat/completions',
@@ -324,7 +363,7 @@ Focus on: Does this photo show "${category}" damage? How severe?`;
           comparisonReport: '',
         };
 
-        // Stage 3: Compare with contractor photo if available
+        // Stage 3: Compare with contractor photo
         if (contractorAfterPhoto && groqResult.isReal) {
           try {
             const stage3Res = await axios.post(
@@ -347,7 +386,6 @@ Focus on: Does this photo show "${category}" damage? How severe?`;
         }
       } catch (err) {
         console.error('[Groq] Error:', err);
-        // Fall back to Vision results
       }
     }
 
@@ -358,13 +396,13 @@ Focus on: Does this photo show "${category}" damage? How severe?`;
       geotagValid = dist <= 500;
     }
 
-    // ── Final decision: combine all 3 services ────────────────────────────
+    // ── Final decision ────────────────────────────────────────────────────
     const finalIsReal = groqResult.isReal && !visionResult.isFake && !hfResult.isAIGenerated;
     const finalCategoryMatch = groqResult.isCorrectCategory && visionResult.categoryMatch;
 
     const finalReason = !finalIsReal ? groqResult.reason :
       !finalCategoryMatch ? `Photo doesn't match "${category}" — ${visionResult.reason}` :
-      `✅ Verified by Google Vision + AI Detector + Groq Vision`;
+      `✅ Verified by HuggingFace AI Detector + Groq Vision`;
 
     console.log(`[AI] Final: real=${finalIsReal}, category=${finalCategoryMatch}, damage=${groqResult.damagePercentage}%`);
 
@@ -376,7 +414,7 @@ Focus on: Does this photo show "${category}" damage? How severe?`;
       damageType: groqResult.damageType,
       locationMatch: geotagValid,
       reason: finalReason,
-      details: `Google Vision (${visionResult.confidence}% confidence): ${visionResult.labels.slice(0, 3).join(', ')}. HuggingFace AI Detector: ${hfResult.reason}. ${groqResult.details}`,
+      details: `HuggingFace: ${hfResult.reason}. ${groqResult.details}`,
       comparisonReport: groqResult.comparisonReport,
       visionLabels: visionResult.labels,
       aiDetectionScore: hfResult.confidence,
@@ -426,11 +464,10 @@ const notifyStakeholders = async (complaint: any, reporterId: string) => {
           <tr style="background:#f8fafc;"><td style="padding:8px;font-weight:bold;">Description:</td><td>${complaint.description}</td></tr>
           <tr><td style="padding:8px;font-weight:bold;">AI Damage:</td><td style="color:#ef4444;font-weight:bold;">${complaint.damagePercentage}% — ${complaint.damageType}</td></tr>
           <tr style="background:#f8fafc;"><td style="padding:8px;font-weight:bold;">Location:</td><td>${complaint.location?.address || `${complaint.location?.lat}, ${complaint.location?.lng}`}</td></tr>
-          <tr><td style="padding:8px;font-weight:bold;">Vision Labels:</td><td style="color:#3b82f6;">${complaint.visionLabels?.join(', ') || 'N/A'}</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:8px;font-weight:bold;">Date:</td><td>${new Date().toLocaleString('en-IN')}</td></tr>
+          <tr><td style="padding:8px;font-weight:bold;">Date:</td><td>${new Date().toLocaleString('en-IN')}</td></tr>
         </table>
         <div style="margin-top:16px;padding:12px;background:#f0f9ff;border-radius:8px;border-left:4px solid #3b82f6;">
-          <p style="margin:0;color:#1e40af;font-size:12px;">🤖 Verified by: Google Vision API + HuggingFace AI Detector + Groq Vision</p>
+          <p style="margin:0;color:#1e40af;font-size:12px;">🤖 Verified by: HuggingFace AI Detector + Groq Vision</p>
         </div>
         ${complaint.comparisonReport ? `<div style="margin-top:12px;padding:12px;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;"><p style="margin:0;color:#92400e;font-size:12px;">📊 AI Report: ${complaint.comparisonReport}</p></div>` : ''}
       </div>`;
@@ -448,7 +485,7 @@ const notifyStakeholders = async (complaint: any, reporterId: string) => {
       await createNotification(au._id.toString(), `🚨 Civic Complaint: ${complaint.category}`, `AI Damage: ${complaint.damagePercentage}%. ${complaint.description?.substring(0, 100)}`, 'complaint', complaint._id.toString());
       if (au.email) await sendEmail(au.email, `🚨 Civic Complaint — Action Required`, html);
     }
-    await createNotification(reporterId, '✅ Complaint Submitted', `Your ${complaint.category} complaint verified by Google Vision + AI Detector. Authorities notified.`, 'status_update', complaint._id.toString());
+    await createNotification(reporterId, '✅ Complaint Submitted', `Your ${complaint.category} complaint verified by AI. Authorities notified.`, 'status_update', complaint._id.toString());
   } catch (err) { console.error('Notify error:', err); }
 };
 
@@ -508,7 +545,6 @@ export const registerComplaint = async (req: Request, res: Response) => {
       success: true,
       message: 'Complaint submitted and verified by AI',
       verificationDetails: {
-        googleVision: `Detected: ${ai.visionLabels?.slice(0, 3).join(', ')}`,
         huggingFace: `AI Detection Score: ${ai.aiDetectionScore}%`,
         groqVision: `Damage: ${ai.damagePercentage}% (${ai.damageType})`,
       },
@@ -516,7 +552,6 @@ export const registerComplaint = async (req: Request, res: Response) => {
         id: complaint._id, category, status: 'pending',
         damagePercentage: ai.damagePercentage,
         damageType: ai.damageType,
-        visionLabels: ai.visionLabels,
         createdAt: complaint.createdAt,
       },
     });
@@ -604,7 +639,6 @@ export const getMapData = async (req: Request, res: Response) => {
       category: c.category, status: c.status,
       damagePercentage: c.damagePercentage,
       damageType: (c as any).damageType,
-      visionLabels: (c as any).visionLabels,
       color: c.status === 'resolved' ? 'green' : c.status === 'in_progress' ? 'yellow' : (c.damagePercentage || 0) >= 40 ? 'red' : 'orange',
       id: c._id,
     }));
