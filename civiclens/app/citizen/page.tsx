@@ -15,6 +15,7 @@ import { SettingsContent } from '../../components/SettingsContent';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import StarRating from '../../components/StarRating';
 import { LucideIcon } from 'lucide-react';
+import { useLocation } from '../../hooks/useLocation';
 
 type Tab = 'overview' | 'map' | 'complaints' | 'analytics' | 'settings';
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -207,41 +208,35 @@ function CitizenDashboardInner() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showProjects, setShowProjects] = useState(false);
   const [showAuthority, setShowAuthority] = useState(false);
-  const [locationName, setLocationName] = useState('Fetching location...');
-  const [isFetchingLocation, setIsFetchingLocation] = useState(true);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, resolved: 0, inProgress: 0, pending: 0 });
   const [loadingData, setLoadingData] = useState(true);
   const searchParams = useSearchParams();
-  useEffect(() => {
-  window.__civicSetTab       = (tab) => setActiveTab(tab as Tab);
-  window.__civicGetProjects  = () => projects;
-  window.__civicGetComplaints = () => complaints;
-  window.__civicGetStats     = () => stats;
-  window.__civicShowProjects = () => setShowProjects(true);
-  return () => {
-    delete window.__civicSetTab;
-    delete window.__civicGetProjects;
-    delete window.__civicGetComplaints;
-    delete window.__civicGetStats;
-    delete window.__civicShowProjects;
-  };
-}, [projects, complaints, stats]);
 
-  useEffect(() => { const tab = searchParams.get('tab') as Tab; if (tab) setActiveTab(tab); }, [searchParams]);
+  // ── Single source of truth for location — from the useLocation hook ──────
+  const { lat, lng, locationName, isFetching: isFetchingLocation } = useLocation();
+  const userLocation = { lat, lng };
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        pos => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationName('Your Location'); setIsFetchingLocation(false); },
-        () => { setUserLocation({ lat: DEMO_LAT, lng: DEMO_LNG }); setLocationName(DEMO_LOCATION_NAME); setIsFetchingLocation(false); },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else { setUserLocation({ lat: DEMO_LAT, lng: DEMO_LNG }); setLocationName(DEMO_LOCATION_NAME); setIsFetchingLocation(false); }
-  }, []);
+    window.__civicSetTab        = (tab) => setActiveTab(tab as Tab);
+    window.__civicGetProjects   = () => projects;
+    window.__civicGetComplaints = () => complaints;
+    window.__civicGetStats      = () => stats;
+    window.__civicShowProjects  = () => setShowProjects(true);
+    return () => {
+      delete window.__civicSetTab;
+      delete window.__civicGetProjects;
+      delete window.__civicGetComplaints;
+      delete window.__civicGetStats;
+      delete window.__civicShowProjects;
+    };
+  }, [projects, complaints, stats]);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab') as Tab;
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   const fetchAllData = useCallback(async () => {
     setLoadingData(true);
@@ -435,10 +430,8 @@ const ComplaintsTab: React.FC<{
   existingComplaints: Complaint[];
   userLocation: { lat: number; lng: number } | null;
 }> = ({ onComplaintSubmitted, existingComplaints, userLocation }) => {
-  const [voiceCategory, setVoiceCategory] = useState('Road & Infrastructure');
-  const [voiceDescription, setVoiceDescription] = useState('');
-  const [category, setCategory] = [voiceCategory, setVoiceCategory];
-  const [description, setDescription] = [voiceDescription, setVoiceDescription];
+  const [category, setCategory] = useState('Road & Infrastructure');
+  const [description, setDescription] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -450,28 +443,15 @@ const ComplaintsTab: React.FC<{
   const [verifyingPhoto, setVerifyingPhoto] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
-  window.__civicSetCategory = (cat: string) => {
-    setCategory(cat);
-    console.log('[Bridge] category set to:', cat);
-  };
-  window.__civicSetDescription = (desc: string) => {
-    setDescription(desc);
-    console.log('[Bridge] description set to:', desc);
-  };
-  return () => {
-    delete window.__civicSetCategory;
-    delete window.__civicSetDescription;
-  };
-}, []);
-useEffect(() => {
-  window.__civicSetCategory = (cat: string) => setCategory(cat);
-  window.__civicSetDescription = (desc: string) => setDescription(desc);
-  return () => {
-    delete window.__civicSetCategory;
-    delete window.__civicSetDescription;
-  };
-}, []);
+    window.__civicSetCategory    = (cat: string) => setCategory(cat);
+    window.__civicSetDescription = (desc: string) => setDescription(desc);
+    return () => {
+      delete window.__civicSetCategory;
+      delete window.__civicSetDescription;
+    };
+  }, []);
 
   const openCamera = async () => {
     setError('');

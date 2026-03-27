@@ -1,0 +1,311 @@
+[
+  {
+    "title": "NH-9 Hisar Bypass Road Widening",
+    "description": "4-lane widening of National Highway 9 from Hisar bypass to Hansi road junction. Includes drainage, streetlights and dividers.",
+    "location": "NH-9 Hisar Bypass, Hisar Urban",
+    "status": "in_progress",
+    "completionPercentage": 62,
+    "budget": 18500000,
+    "startDate": "2024-04-01",
+    "expectedEndDate": "2025-06-30",
+    "coordinates": { "lat": 29.1624, "lng": 75.7221 },
+    "contractor": {
+      "name": "Rajesh Infrastructure Pvt Ltd",
+      "phone": "9812345678",
+      "email": "rajesh.infra@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Suresh Sharma",
+      "designation": "Executive Engineer PWD",
+      "office": "PWD Division Office, Hisar"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Month 3 Progress",
+        "description": "Base layer completed for 4.2 km stretch. Drainage work 80% done.",
+        "completionUpdate": 42,
+        "uploadedAt": "2024-07-15"
+      },
+      {
+        "title": "Month 6 Progress",
+        "description": "Asphalt paving completed for 7 km. Dividers installation started.",
+        "completionUpdate": 62,
+        "uploadedAt": "2024-10-10"
+      }
+    ]
+  },
+  {
+    "title": "Adampur Block Water Pipeline Upgrade",
+    "description": "Replacement of 35-year-old water supply pipeline covering 18 villages in Adampur block. New 200mm HDPE pipes with 24x7 supply.",
+    "location": "Adampur Block, Hisar",
+    "status": "in_progress",
+    "completionPercentage": 45,
+    "budget": 9200000,
+    "startDate": "2024-06-15",
+    "expectedEndDate": "2025-03-31",
+    "coordinates": { "lat": 29.1492, "lng": 75.7217 },
+    "contractor": {
+      "name": "Apex Buildcon Pvt Ltd",
+      "phone": "9876543210",
+      "email": "apex.buildcon@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Anil Verma",
+      "designation": "Chief Engineer Water",
+      "office": "PHED Office, Hisar"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Trench Excavation Complete",
+        "description": "Trench work done for 12 km main pipeline. Pipe laying started.",
+        "completionUpdate": 45,
+        "uploadedAt": "2024-09-20"
+      }
+    ]
+  },
+  {
+    "title": "Hisar Smart City Solar Street Lights",
+    "description": "Installation of 2,400 solar LED street lights across Hisar urban wards 1-20. Includes smart sensor-based dimming system.",
+    "location": "Hisar Urban Wards 1-20",
+    "status": "completed",
+    "completionPercentage": 100,
+    "budget": 7800000,
+    "startDate": "2023-10-01",
+    "expectedEndDate": "2024-03-31",
+    "coordinates": { "lat": 29.1541, "lng": 75.7310 },
+    "contractor": {
+      "name": "SunPower Solutions Hisar",
+      "phone": "9654321098",
+      "email": "sunpower.hisar@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Rajesh Kumar",
+      "designation": "Municipal Commissioner",
+      "office": "Municipal Corporation Hisar"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Final Completion Report",
+        "description": "All 2,400 solar lights installed and operational. Citizen feedback positive.",
+        "completionUpdate": 100,
+        "uploadedAt": "2024-04-02"
+      }
+    ]
+  },
+  {
+    "title": "Barwala-Hisar Rural Road Construction",
+    "description": "Construction of 22 km concrete road connecting Barwala block villages to Hisar city. Covers 8 villages: Sandila, Dhansu, Ghangala, Balsamand and 4 others.",
+    "location": "Barwala Block, Hisar",
+    "status": "in_progress",
+    "completionPercentage": 30,
+    "budget": 24000000,
+    "startDate": "2024-09-01",
+    "expectedEndDate": "2025-12-31",
+    "coordinates": { "lat": 29.1050, "lng": 75.6890 },
+    "contractor": {
+      "name": "Haryana Roads Construction Co.",
+      "phone": "9711234567",
+      "email": "hrcc.hisar@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Deepak Arora",
+      "designation": "BDO Barwala",
+      "office": "Block Development Office, Barwala"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Foundation Work Update",
+        "description": "Sub-grade preparation complete for 6 km. Concrete mixing plant setup at Barwala.",
+        "completionUpdate": 30,
+        "uploadedAt": "2024-11-15"
+      }
+    ]
+  },
+  {
+    "title": "Hansi Primary School Building Renovation",
+    "description": "Renovation of 12 primary schools in Hansi block. New classrooms, toilets, drinking water facility and boundary walls.",
+    "location": "Hansi Block, Hisar",
+    "status": "completed",
+    "completionPercentage": 100,
+    "budget": 5600000,
+    "startDate": "2023-08-01",
+    "expectedEndDate": "2024-01-31",
+    "coordinates": { "lat": 29.0956, "lng": 75.9590 },
+    "contractor": {
+      "name": "Civil Works Haryana",
+      "phone": "9988776655",
+      "email": "civilworks.haryana@gmail.com"
+    },
+    "authority": {
+      "name": "Smt. Kavita Singh",
+      "designation": "SDM Hansi",
+      "office": "Sub-Divisional Magistrate Office, Hansi"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Project Completion",
+        "description": "All 12 schools renovated. New toilets and drinking water operational. 3,200 students benefited.",
+        "completionUpdate": 100,
+        "uploadedAt": "2024-02-10"
+      }
+    ]
+  },
+  {
+    "title": "Uklana Drainage & Flood Control",
+    "description": "Construction of main drainage channel (4.8 km) in Uklana Mandi to prevent seasonal flooding. Includes 3 retention ponds.",
+    "location": "Uklana Block, Hisar",
+    "status": "in_progress",
+    "completionPercentage": 55,
+    "budget": 11200000,
+    "startDate": "2024-03-01",
+    "expectedEndDate": "2025-02-28",
+    "coordinates": { "lat": 29.4200, "lng": 75.8350 },
+    "contractor": {
+      "name": "Flood Control Engineers Ltd",
+      "phone": "9843210987",
+      "email": "fce.hisar@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Mahesh Yadav",
+      "designation": "BDO Uklana",
+      "office": "Block Development Office, Uklana"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Drainage Channel Progress",
+        "description": "2.6 km channel dug and lined. Retention pond 1 complete. Monsoon test successful.",
+        "completionUpdate": 55,
+        "uploadedAt": "2024-08-30"
+      }
+    ]
+  },
+  {
+    "title": "Narnaund Community Health Centre",
+    "description": "New 30-bed Community Health Centre at Narnaund with OPD, operation theatre, maternity ward and pathology lab.",
+    "location": "Narnaund Block, Hisar",
+    "status": "in_progress",
+    "completionPercentage": 78,
+    "budget": 32000000,
+    "startDate": "2023-12-01",
+    "expectedEndDate": "2025-05-31",
+    "coordinates": { "lat": 29.2890, "lng": 75.9780 },
+    "contractor": {
+      "name": "Medicon Builders Pvt Ltd",
+      "phone": "9765432109",
+      "email": "medicon.builders@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Harish Goyal",
+      "designation": "BDO Narnaund",
+      "office": "Block Development Office, Narnaund"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Structure Complete",
+        "description": "Main building structure done. Electrical and plumbing work ongoing. Equipment procurement started.",
+        "completionUpdate": 78,
+        "uploadedAt": "2024-10-25"
+      }
+    ]
+  },
+  {
+    "title": "Agroha Heritage Site Development",
+    "description": "Development of tourist infrastructure at Agroha Dham — parking, cafeteria, visitor centre, signage and 2 km approach road.",
+    "location": "Agroha, Hisar",
+    "status": "upcoming",
+    "completionPercentage": 5,
+    "budget": 8900000,
+    "startDate": "2025-01-15",
+    "expectedEndDate": "2025-10-31",
+    "coordinates": { "lat": 29.3580, "lng": 75.5430 },
+    "contractor": {
+      "name": "Tourism Infrastructure Co.",
+      "phone": "9654320987",
+      "email": "tic.hisar@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Vinod Kumar",
+      "designation": "BDO Agroha",
+      "office": "Block Development Office, Agroha"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": []
+  },
+  {
+    "title": "Hisar District Solid Waste Management Plant",
+    "description": "Modern solid waste processing plant with 150 TPD capacity. Includes segregation unit, composting yard and landfill management.",
+    "location": "Industrial Area, Hisar Rural",
+    "status": "delayed",
+    "completionPercentage": 20,
+    "budget": 45000000,
+    "startDate": "2024-01-01",
+    "expectedEndDate": "2024-12-31",
+    "coordinates": { "lat": 29.1820, "lng": 75.8120 },
+    "contractor": {
+      "name": "GreenWaste Solutions India",
+      "phone": "9543219876",
+      "email": "greenwaste.india@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Rajesh Kumar",
+      "designation": "Municipal Commissioner",
+      "office": "Municipal Corporation Hisar"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Delay Notice",
+        "description": "Land acquisition dispute delayed construction. Court matter resolved. Restarting Jan 2025.",
+        "completionUpdate": 20,
+        "uploadedAt": "2024-12-01"
+      }
+    ]
+  },
+  {
+    "title": "Bass-Litani Rural Electrification",
+    "description": "Complete electrification of 14 hamlets in Bass and Litani blocks. 11 kV feeder line, transformers and last-mile connections for 2,100 households.",
+    "location": "Bass & Litani Blocks, Hisar",
+    "status": "completed",
+    "completionPercentage": 100,
+    "budget": 6700000,
+    "startDate": "2023-06-01",
+    "expectedEndDate": "2023-12-31",
+    "coordinates": { "lat": 29.5120, "lng": 75.6540 },
+    "contractor": {
+      "name": "Haryana Electrification Corp",
+      "phone": "9432108765",
+      "email": "hec.hisar@gmail.com"
+    },
+    "authority": {
+      "name": "Sh. Pawan Gupta",
+      "designation": "BDO Litani",
+      "office": "Block Development Office, Litani"
+    },
+    "beforePhoto": "",
+    "afterPhoto": "",
+    "reports": [
+      {
+        "title": "Completion Certificate",
+        "description": "All 2,100 households electrified. 14 hamlets now have 18-hour daily power supply.",
+        "completionUpdate": 100,
+        "uploadedAt": "2024-01-05"
+      }
+    ]
+  }
+]
