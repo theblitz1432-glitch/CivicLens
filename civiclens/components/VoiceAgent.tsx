@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 
 interface Message { role: 'user' | 'assistant'; text: string; lang: string }
 type FlowState = 'idle' | 'complaint_category' | 'complaint_description' | 'complaint_photo' | 'complaint_confirm'
-interface ComplaintData { category: string; description: string; photoTaken: boolean }
+interface ComplaintData { category: string; description: string; photoTaken: boolean; photoFile?: File }
 
 declare global {
   interface Window {
@@ -17,6 +17,7 @@ declare global {
     __civicShowProjects?: () => void
     __civicSetCategory?: (cat: string) => void
     __civicSetDescription?: (desc: string) => void
+    __civicSetPhoto?: (file: File) => void   // ← expose this in your complaint form
   }
 }
 
@@ -163,7 +164,7 @@ const callGroq = async (
         { role: 'user', content: userMsg },
       ],
       max_tokens: 200,
-      temperature: 0.1, // very low = strict language compliance
+      temperature: 0.1,
     }),
   })
   if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
@@ -173,19 +174,17 @@ const callGroq = async (
 
 // ── Language detection ───────────────────────────────────────────────────────
 const detectScript = (text: string): string | null => {
-  if (/[\u0900-\u097F]/.test(text)) return 'hi-IN'  // Devanagari → Hindi
-  if (/[\u0A00-\u0A7F]/.test(text)) return 'pa-IN'  // Gurmukhi → Punjabi
-  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta-IN'  // Tamil
-  if (/[\u0C00-\u0C7F]/.test(text)) return 'te-IN'  // Telugu
-  if (/[\u0980-\u09FF]/.test(text)) return 'bn-IN'  // Bengali
-  if (/[\u0C80-\u0CFF]/.test(text)) return 'kn-IN'  // Kannada
-  if (/[\u0D00-\u0D7F]/.test(text)) return 'ml-IN'  // Malayalam
-  if (/[\u0A80-\u0AFF]/.test(text)) return 'gu-IN'  // Gujarati
+  if (/[\u0900-\u097F]/.test(text)) return 'hi-IN'
+  if (/[\u0A00-\u0A7F]/.test(text)) return 'pa-IN'
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta-IN'
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'te-IN'
+  if (/[\u0980-\u09FF]/.test(text)) return 'bn-IN'
+  if (/[\u0C80-\u0CFF]/.test(text)) return 'kn-IN'
+  if (/[\u0D00-\u0D7F]/.test(text)) return 'ml-IN'
+  if (/[\u0A80-\u0AFF]/.test(text)) return 'gu-IN'
   return null
 }
 
-// Pure Hindi Roman words — if 1+ found, it's Hinglish → reply in Hindi
-// These words CANNOT be English words
 const HINDI_ROMAN = new Set([
   'mujhe','muje','mere','mera','meri','tumhe','main','hum','aap','wo','yeh',
   'karo','karni','karna','karein','chahiye','chahie','batao','sunao',
@@ -197,20 +196,13 @@ const HINDI_ROMAN = new Set([
   'bijli','nali','kachra','sadak','gaddha',
 ])
 
-// Returns true if text has ANY Hindi roman word (even 1 = Hinglish)
 const isHinglish = (t: string): boolean =>
   t.toLowerCase().replace(/[.,!?]/g, '').split(/\s+/).some(w => HINDI_ROMAN.has(w))
 
-// Main language resolver — uses recognition lang as primary source of truth
 const resolveLang = (transcript: string, recognitionLang: string): string => {
-  // 1. Script detection is most accurate
   const script = detectScript(transcript)
   if (script) return script
-
-  // 2. Hinglish detection (Roman Hindi words)
   if (isHinglish(transcript)) return 'hi-IN'
-
-  // 3. Fall back to whatever language the mic was set to
   return recognitionLang
 }
 
@@ -246,19 +238,16 @@ const GREETINGS: Record<string, (name: string) => string> = {
   'mr-IN': n => n ? `Namaskar ${n}!` : 'Namaskar! Mi CivicLens AI aahe.',
 }
 
-// Safe first-name extractor — skips common non-name words like "The"
 const SKIP_NAMES = new Set(['the','a','an','guest','user','null','undefined','admin','test','na','unknown'])
 const getFirstName = (name?: string | null): string => {
   if (!name || typeof name !== 'string') return ''
   const first = name.trim().split(/\s+/)[0]
   if (!first || SKIP_NAMES.has(first.toLowerCase())) return ''
-  // Only return if it looks like a real name (has letters, not all numbers)
   return /[a-zA-Z\u0900-\u097F]/.test(first) ? first : ''
 }
 
 // ── Set React state from outside component ───────────────────────────────────
 const setComplaintField = (field: 'category' | 'description', value: string): boolean => {
-  // Method 1: Global bridge (most reliable)
   if (field === 'category' && window.__civicSetCategory) {
     window.__civicSetCategory(value)
     return true
@@ -267,7 +256,6 @@ const setComplaintField = (field: 'category' | 'description', value: string): bo
     window.__civicSetDescription(value)
     return true
   }
-  // Method 2: React fiber / native setter fallback
   const ids = { category: 'complaint-category', description: 'complaint-description' }
   const el = document.getElementById(ids[field]) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
   if (!el) return false
@@ -281,6 +269,47 @@ const setComplaintField = (field: 'category' | 'description', value: string): bo
     el.dispatchEvent(new Event('change', { bubbles: true }))
     return true
   } catch { return false }
+}
+
+// ── BUG FIX #2: Sync photo to the real complaint form ───────────────────────
+// 3 methods tried in order:
+//   1. window.__civicSetPhoto bridge (expose in your complaint form — most reliable)
+//   2. DataTransfer inject into the form's file input
+//   3. Custom DOM event 'civicPhotoSelected' — complaint form can addEventListener for this
+const syncPhotoToForm = (file: File): void => {
+  // Method 1 — global bridge
+  if (window.__civicSetPhoto) {
+    window.__civicSetPhoto(file)
+    return
+  }
+
+  // Method 2 — DataTransfer inject (try common IDs, skip our own hidden input)
+  const selectors = [
+    '#complaint-photo',
+    '#photo-evidence',
+    '#photo-input',
+    'input[type="file"][accept*="image"]',
+  ]
+  for (const sel of selectors) {
+    const el = document.querySelector(sel) as HTMLInputElement | null
+    if (el && el.id !== 'civic-photo-voice') {
+      try {
+        const dt = new DataTransfer()
+        dt.items.add(file)
+        el.files = dt.files
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+        el.dispatchEvent(new Event('input',  { bubbles: true }))
+        console.log('[Voice] Photo synced via DataTransfer to', sel)
+        return
+      } catch (err) {
+        console.warn('[Voice] DataTransfer inject failed for', sel, err)
+      }
+    }
+  }
+
+  // Method 3 — custom event fallback
+  window.dispatchEvent(new CustomEvent('civicPhotoSelected', { detail: { file } }))
+  console.log('[Voice] civicPhotoSelected event dispatched — make sure complaint form listens for it')
 }
 
 // ── MAIN COMPONENT ───────────────────────────────────────────────────────────
@@ -309,17 +338,15 @@ export default function VoiceAgent() {
   const voicesRef      = useRef<SpeechSynthesisVoice[]>([])
   const photoInputRef  = useRef<HTMLInputElement>(null)
 
-  // Stable refs — avoid stale closures in callbacks
   const r = {
-    selectedLang: useRef('en-IN'),
-    activeLang:   useRef('en-IN'),
-    isSpeaking:   useRef(false),
-    isThinking:   useRef(false),
-    autoListen:   useRef(false),
-    flowState:    useRef<FlowState>('idle'),
-    startMic:     useRef<() => void>(() => {}),
-    // Accumulate partial transcripts on mobile
-    partialBuffer: useRef(''),
+    selectedLang:   useRef('en-IN'),
+    activeLang:     useRef('en-IN'),
+    isSpeaking:     useRef(false),
+    isThinking:     useRef(false),
+    autoListen:     useRef(false),
+    flowState:      useRef<FlowState>('idle'),
+    startMic:       useRef<() => void>(() => {}),
+    partialBuffer:  useRef(''),
     lastResultTime: useRef(Date.now()),
   }
 
@@ -339,7 +366,6 @@ export default function VoiceAgent() {
     if (showChat) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, showChat])
 
-  // Stop mic when entering photo step
   useEffect(() => {
     if (flowState === 'complaint_photo' && recogRef.current) {
       try { recogRef.current.stop() } catch {}
@@ -376,14 +402,19 @@ export default function VoiceAgent() {
     window.speechSynthesis.speak(utt)
   }, [])
 
-  // ── Photo handler ────────────────────────────────────────────────────────
+  // ── BUG FIX #2: Photo handler ────────────────────────────────────────────
   const handlePhoto = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
     setPhotoPreview(URL.createObjectURL(file))
-    setComplaintData(p => ({ ...p, photoTaken: true }))
+    setComplaintData(p => ({ ...p, photoTaken: true, photoFile: file }))
     setShowPhotoBtn(false)
     setFlowState('complaint_confirm')
+
+    // ✅ FIXED: Push photo to the actual complaint form
+    syncPhotoToForm(file)
+
     const lang = r.activeLang.current
     const msg  = lang === 'en-IN'
       ? 'Photo added! Say "yes" or "submit" to file your complaint.'
@@ -395,7 +426,6 @@ export default function VoiceAgent() {
 
   // ── Handle AI response tags ──────────────────────────────────────────────
   const handleResponse = useCallback((reply: string, userMsg: string, lang: string) => {
-    // Navigation — only in idle flow
     const tabM = reply.match(/\[TAB:(.*?)\]/)
     if (tabM && r.flowState.current === 'idle') {
       const tab = tabM[1].trim()
@@ -409,11 +439,9 @@ export default function VoiceAgent() {
       }
     }
 
-    // Show projects modal
     if (reply.includes('[SHOW:projects]'))
       setTimeout(() => window.__civicShowProjects?.(), 1600)
 
-    // Category detected
     const catM = reply.match(/\[CAT:(.*?)\]/)
     if (catM) {
       const cat = catM[1].trim()
@@ -424,7 +452,6 @@ export default function VoiceAgent() {
       return
     }
 
-    // Description confirmed — use ORIGINAL user speech (not translated)
     if (reply.includes('[DESC_DONE]')) {
       const desc = userMsg.trim()
       setComplaintData(p => ({ ...p, description: desc }))
@@ -440,7 +467,6 @@ export default function VoiceAgent() {
       return
     }
 
-    // Submit
     if (reply.includes('[SUBMIT]')) {
       const yes = ['yes','ok','okay','sure','submit','haan','ha','bilkul','zaroor','yeah','confirm','theek']
       if (yes.some(w => userMsg.toLowerCase().includes(w))) {
@@ -452,7 +478,6 @@ export default function VoiceAgent() {
 
   // ── Main AI pipeline ─────────────────────────────────────────────────────
   const askAI = useCallback(async (userMsg: string, recognitionLang: string) => {
-    // Smart language resolution — recognition lang + script detection + hinglish
     const lang     = resolveLang(userMsg, recognitionLang)
     const langInfo = getLang(lang)
 
@@ -465,7 +490,6 @@ export default function VoiceAgent() {
     setMessages(newHistory)
 
     try {
-      // HuggingFace: translate non-English to English for LLM understanding
       let llmMsg = userMsg
       if (lang !== 'en-IN' && langInfo.hf !== 'en' && HF_TOKEN) {
         setTranslating(true)
@@ -474,7 +498,6 @@ export default function VoiceAgent() {
         console.log('[HF translate]', userMsg, '→', llmMsg)
       }
 
-      // LangChain-style prompt with language explicitly stated
       const appData = {
         projects:   window.__civicGetProjects?.()   ?? [],
         complaints: window.__civicGetComplaints?.() ?? [],
@@ -492,7 +515,6 @@ export default function VoiceAgent() {
       const clean = reply.replace(/\[.*?\]/g, '').trim()
       setMessages(p => [...p, { role: 'assistant', text: clean || reply, lang }])
       speak(reply, lang)
-      // Always pass ORIGINAL message for description storage
       handleResponse(reply, userMsg, lang)
 
     } catch (err: any) {
@@ -505,13 +527,7 @@ export default function VoiceAgent() {
     }
   }, [messages, speak, handleResponse, complaintData, pathname, user])
 
-  // ── Speech Recognition — Mobile-optimized ───────────────────────────────
-  // ROOT CAUSE OF "I want" / "Mujhe" partial speech:
-  // On Android, SpeechRecognition fires 'end' after ~5-7s of silence OR after
-  // first pause. We fix this by:
-  // 1. Accumulating interim results in a buffer
-  // 2. Using a silence detector — only submit after 2s of no new words
-  // 3. If recognition ends without final result, use the buffer
+  // ── Speech Recognition — BUG FIX #1: e.resultIndex stops repetition ─────
   const startMic = useCallback(() => {
     if (r.isSpeaking.current || r.isThinking.current) return
     if (recogRef.current) {
@@ -525,60 +541,60 @@ export default function VoiceAgent() {
     const rec = new SR()
     recogRef.current = rec
 
-    // Mobile settings — key fix for partial speech
-    rec.continuous     = true   // keep listening even after pauses
-    rec.interimResults = true   // get partial results
+    rec.continuous      = true
+    rec.interimResults  = true
     rec.maxAlternatives = 1
-    rec.lang           = r.selectedLang.current
+    rec.lang            = r.selectedLang.current
 
-    let bestTranscript   = ''   // accumulates the best final/interim text
+    let bestTranscript  = ''   // finalTranscript + current interim
+    let finalTranscript = ''   // ✅ only confirmed final segments
     let silenceTimer: ReturnType<typeof setTimeout> | null = null
-    let hasResult        = false
+    let hasResult = false
 
-    // Submit what we have after silence
     const submitCurrent = () => {
-      if (!bestTranscript.trim()) return
       const text = bestTranscript.trim()
-      bestTranscript = ''
+      if (!text) return
+      bestTranscript  = ''
+      finalTranscript = ''
       hasResult = true
       recogRef.current = null
       try { rec.stop() } catch {}
       askAI(text, r.selectedLang.current)
     }
 
-    // Reset silence timer on each new word
     const resetSilenceTimer = () => {
       if (silenceTimer) clearTimeout(silenceTimer)
-      // Wait 2.5s of silence before submitting — gives user time to pause between words
       silenceTimer = setTimeout(submitCurrent, 2500)
     }
 
     rec.onstart = () => {
       setIsListening(true)
       setStatusText('Listening...')
-      hasResult    = false
-      bestTranscript = ''
+      hasResult       = false
+      bestTranscript  = ''
+      finalTranscript = ''
       r.partialBuffer.current = ''
     }
 
+    // ✅ BUG FIX #1: Start loop at e.resultIndex, not 0
+    // Previously looping from 0 re-appended old results every new event
     rec.onresult = (e: any) => {
-      // Build transcript from ALL results (not just latest)
+      let newFinal    = ''
       let interimText = ''
-      let finalText   = ''
 
-      for (let i = 0; i < e.results.length; i++) {
-        const result = e.results[i]
-        if (result.isFinal) {
-          finalText += result[0].transcript + ' '
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          newFinal += e.results[i][0].transcript + ' '
         } else {
-          interimText += result[0].transcript
+          interimText += e.results[i][0].transcript
         }
       }
 
-      const combined = (finalText + interimText).trim()
-      if (combined) {
-        bestTranscript = combined
-        setTranscript(combined)
+      if (newFinal) finalTranscript += newFinal
+      bestTranscript = (finalTranscript + interimText).trim()
+
+      if (bestTranscript) {
+        setTranscript(bestTranscript)
         r.lastResultTime.current = Date.now()
         resetSilenceTimer()
       }
@@ -595,7 +611,6 @@ export default function VoiceAgent() {
         return
       }
 
-      // no-speech / audio-capture — restart in auto mode
       if ((e.error === 'no-speech' || e.error === 'audio-capture') && r.autoListen.current) {
         setTimeout(() => { if (r.autoListen.current && !r.isSpeaking.current) r.startMic.current() }, 500)
       }
@@ -606,12 +621,11 @@ export default function VoiceAgent() {
       recogRef.current = null
       setIsListening(false)
 
-      // If we have buffered text and didn't already submit, submit it now
-      // This handles the case where Android kills recognition mid-sentence
       if (bestTranscript.trim() && !hasResult && !r.isThinking.current) {
         console.log('[Mic] Submitting buffered text on end:', bestTranscript)
         const text = bestTranscript.trim()
-        bestTranscript = ''
+        bestTranscript  = ''
+        finalTranscript = ''
         setTranscript('')
         askAI(text, r.selectedLang.current)
         return
@@ -620,12 +634,10 @@ export default function VoiceAgent() {
       setTranscript('')
 
       if (hasResult) {
-        // Submitted — wait for AI then restart in auto mode
         setStatusText(r.autoListen.current ? 'Processing...' : 'Tap mic to speak')
         return
       }
 
-      // No speech detected
       if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current) {
         setTimeout(() => {
           if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current)
@@ -675,7 +687,6 @@ export default function VoiceAgent() {
     setIsOpen(false); resetChat(); setShowChat(true)
   }
 
-  // Greeting on open
   useEffect(() => {
     if (!isOpen || messages.length > 0) return
     const fn = getFirstName(user?.name)
@@ -712,7 +723,6 @@ export default function VoiceAgent() {
     </button>
   )
 
-  // Hands-free floating bar
   if (autoListen && !showChat) return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-black/80 backdrop-blur-md rounded-full border border-white/10 shadow-2xl max-w-xs w-full">
       <div className={`w-2 h-2 rounded-full shrink-0 ${
@@ -734,7 +744,6 @@ export default function VoiceAgent() {
     </div>
   )
 
-  // Full chat panel
   return (
     <div className="fixed bottom-24 left-6 z-50 w-80 bg-[#0d1117] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '85vh' }}>
 
@@ -830,7 +839,6 @@ export default function VoiceAgent() {
           </div>
         )}
 
-        {/* Live transcript preview */}
         {transcript && (
           <div className="flex justify-end">
             <div className="max-w-[88%] px-4 py-2 rounded-2xl bg-indigo-900/40 text-sm italic text-indigo-300">
@@ -840,7 +848,6 @@ export default function VoiceAgent() {
           </div>
         )}
 
-        {/* Complaint progress card */}
         {(complaintData.category || complaintData.description) && (
           <div className="bg-slate-800/60 rounded-xl p-3 text-xs space-y-1.5 border border-slate-700">
             <p className="text-slate-400 font-semibold">📋 Complaint in progress</p>
@@ -854,7 +861,6 @@ export default function VoiceAgent() {
           </div>
         )}
 
-        {/* Camera button */}
         {showPhotoBtn && (
           <div className="flex flex-col items-center gap-2 py-3">
             <label htmlFor="civic-photo-voice"
@@ -869,7 +875,6 @@ export default function VoiceAgent() {
           </div>
         )}
 
-        {/* Photo preview */}
         {photoPreview && (
           <div className="flex justify-center">
             <div className="relative">
@@ -893,15 +898,12 @@ export default function VoiceAgent() {
       {/* Controls */}
       <div className="p-4 border-t border-slate-700 bg-slate-950 shrink-0">
         <div className="flex justify-center items-center gap-6 mb-4">
-
-          {/* Stop TTS */}
           <button onClick={() => { window.speechSynthesis.cancel(); setIsSpeaking(false) }}
             title="Stop speaking"
             className="w-11 h-11 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-colors">
             <Volume2 className="w-5 h-5 text-slate-300" />
           </button>
 
-          {/* Main mic */}
           <button onClick={isListening ? stopMic : startMic}
             disabled={isThinking || isSpeaking}
             className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg ${
@@ -912,14 +914,12 @@ export default function VoiceAgent() {
             {isListening ? <MicOff className="w-7 h-7 text-white" /> : <Mic className="w-7 h-7 text-white" />}
           </button>
 
-          {/* Reset */}
           <button onClick={resetChat} title="Reset conversation"
             className="w-11 h-11 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-colors">
             <RefreshCw className="w-5 h-5 text-slate-300" />
           </button>
         </div>
 
-        {/* Hands-free toggle */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-slate-400 text-xs">Hands-free mode</p>
@@ -933,7 +933,6 @@ export default function VoiceAgent() {
           </button>
         </div>
 
-        {/* Tech badges */}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-[10px] text-slate-600 bg-slate-800/80 px-2 py-0.5 rounded-full">LangChain</span>
           {HF_TOKEN && <span className="text-[10px] text-purple-500 bg-purple-900/20 px-2 py-0.5 rounded-full">HuggingFace MT</span>}
