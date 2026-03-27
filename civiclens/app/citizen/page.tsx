@@ -215,6 +215,20 @@ function CitizenDashboardInner() {
   const [stats, setStats] = useState<Stats>({ total: 0, resolved: 0, inProgress: 0, pending: 0 });
   const [loadingData, setLoadingData] = useState(true);
   const searchParams = useSearchParams();
+  useEffect(() => {
+  window.__civicSetTab       = (tab) => setActiveTab(tab as Tab);
+  window.__civicGetProjects  = () => projects;
+  window.__civicGetComplaints = () => complaints;
+  window.__civicGetStats     = () => stats;
+  window.__civicShowProjects = () => setShowProjects(true);
+  return () => {
+    delete window.__civicSetTab;
+    delete window.__civicGetProjects;
+    delete window.__civicGetComplaints;
+    delete window.__civicGetStats;
+    delete window.__civicShowProjects;
+  };
+}, [projects, complaints, stats]);
 
   useEffect(() => { const tab = searchParams.get('tab') as Tab; if (tab) setActiveTab(tab); }, [searchParams]);
 
@@ -421,8 +435,10 @@ const ComplaintsTab: React.FC<{
   existingComplaints: Complaint[];
   userLocation: { lat: number; lng: number } | null;
 }> = ({ onComplaintSubmitted, existingComplaints, userLocation }) => {
-  const [category, setCategory] = useState('Road & Infrastructure');
-  const [description, setDescription] = useState('');
+  const [voiceCategory, setVoiceCategory] = useState('Road & Infrastructure');
+  const [voiceDescription, setVoiceDescription] = useState('');
+  const [category, setCategory] = [voiceCategory, setVoiceCategory];
+  const [description, setDescription] = [voiceDescription, setVoiceDescription];
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -434,6 +450,28 @@ const ComplaintsTab: React.FC<{
   const [verifyingPhoto, setVerifyingPhoto] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+  window.__civicSetCategory = (cat: string) => {
+    setCategory(cat);
+    console.log('[Bridge] category set to:', cat);
+  };
+  window.__civicSetDescription = (desc: string) => {
+    setDescription(desc);
+    console.log('[Bridge] description set to:', desc);
+  };
+  return () => {
+    delete window.__civicSetCategory;
+    delete window.__civicSetDescription;
+  };
+}, []);
+useEffect(() => {
+  window.__civicSetCategory = (cat: string) => setCategory(cat);
+  window.__civicSetDescription = (desc: string) => setDescription(desc);
+  return () => {
+    delete window.__civicSetCategory;
+    delete window.__civicSetDescription;
+  };
+}, []);
 
   const openCamera = async () => {
     setError('');
