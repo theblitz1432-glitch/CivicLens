@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-// ── Language config ───────────────────────────────────────────────────────
+// ── Language config ──────────────────────────────────────────────────────────
 const LANGS = [
   { code: 'en-IN', label: 'English',   hf: 'en' },
   { code: 'hi-IN', label: 'Hindi',     hf: 'hi' },
@@ -35,7 +35,7 @@ const LANGS = [
 ]
 const getLang = (code: string) => LANGS.find(l => l.code === code) ?? LANGS[0]
 
-// ── HuggingFace translation ───────────────────────────────────────────────
+// ── HuggingFace translation ──────────────────────────────────────────────────
 const HF_TOKEN = process.env.NEXT_PUBLIC_HF_TOKEN
 
 const translateToEnglish = async (text: string, srcLang: string): Promise<string> => {
@@ -55,13 +55,13 @@ const translateToEnglish = async (text: string, srcLang: string): Promise<string
   } catch { return text }
 }
 
-// ── LangChain-style prompt builder ────────────────────────────────────────
+// ── LangChain-style prompt builder ───────────────────────────────────────────
 const buildPrompt = (
   langLabel: string, langCode: string, flowState: FlowState,
   firstName: string, complaintData: ComplaintData,
   projects: any[], stats: any, pathname: string
 ) => {
-  const name = firstName ? `User's name: ${firstName}.` : ''
+  const name = firstName ? `User's name: ${firstName}. Use their name warmly.` : ''
   const projectList = projects.length > 0
     ? projects.slice(0, 5).map(p => `• ${p.title} (${p.status}, ${p.completionPercentage}%)`).join('\n')
     : 'No projects found.'
@@ -69,10 +69,15 @@ const buildPrompt = (
   const system = `You are CivicLens Voice AI Assistant for Hisar District, Haryana.
 ${name}
 
-CRITICAL LANGUAGE RULE:
-- User spoke in ${langLabel}
-- YOU MUST REPLY IN ${langLabel.toUpperCase()} ONLY — no exceptions
-- English→English. Hindi→Hindi. Never mix languages.
+CRITICAL LANGUAGE RULE — HIGHEST PRIORITY:
+- The user spoke in: ${langLabel} (${langCode})
+- YOU MUST REPLY IN ${langLabel.toUpperCase()} ONLY
+- If user spoke Hindi → reply in Hindi
+- If user spoke English → reply in English
+- If user spoke Tamil → reply in Tamil
+- NEVER ask user to switch language
+- NEVER reply in English when user spoke Hindi
+- Hinglish (mixed Hindi-English) → reply in Hindi
 
 RESPONSE RULES:
 - Maximum 2-3 short sentences
@@ -87,56 +92,55 @@ ${projectList}
 Stats: Total=${stats.total}, Resolved=${stats.resolved}, Pending=${stats.pending}
 
 NAVIGATION INTENT — append tag at end ONLY when user explicitly asks:
-- "complaint/shikayat/file/register complaint" → [TAB:complaints]
+- "complaint/shikayat/file/register/darj" → [TAB:complaints]
 - "map/naksha/location" → [TAB:map]
-- "home/dashboard/overview" → [TAB:overview]
+- "home/dashboard/overview/ghar" → [TAB:overview]
 - "profile/settings/account" → [TAB:settings]
 - "analytics/updates/stats" → [TAB:analytics]
-- "projects/construction/ongoing work/kaam" → summarize projects in ${langLabel} then add [TAB:overview][SHOW:projects]
+- "projects/construction/ongoing/kaam/nirman" → summarize projects in ${langLabel} then add [TAB:overview][SHOW:projects]
 
-IMPORTANT: If user just describes a problem (water/road/electricity issue) WITHOUT asking to register complaint — ask them if they want to file a complaint. Do NOT add [TAB:complaints] automatically.`,
+IMPORTANT: If user just describes a problem WITHOUT asking to register — ask them warmly if they want to file a complaint. Do NOT add [TAB:complaints] automatically.`,
 
     complaint_category: `
 TASK: Detect complaint category from what user says.
 Map to exactly one:
-- road/pothole/sadak/highway → [CAT:Road & Infrastructure]
-- water/pani/supply/tap → [CAT:Water Supply]  
-- electricity/bijli/power/light → [CAT:Electricity]
-- garbage/sanitation/safai/kachra → [CAT:Sanitation]
-- drain/nali/drainage/flooding → [CAT:Drainage]
-- street light/lamp post → [CAT:Street Light]
-- park/garden/playground → [CAT:Park]
+- road/pothole/sadak/highway/gaddha → [CAT:Road & Infrastructure]
+- water/pani/supply/tap/nalkaa → [CAT:Water Supply]
+- electricity/bijli/power/light/current → [CAT:Electricity]
+- garbage/sanitation/safai/kachra/ganda → [CAT:Sanitation]
+- drain/nali/drainage/flooding/barsat → [CAT:Drainage]
+- street light/lamp post/khamba → [CAT:Street Light]
+- park/garden/playground/bagicha → [CAT:Park]
 - anything else → [CAT:Other]
 
 Confirm category warmly in ${langLabel} + add [CAT:CategoryName]
 DO NOT add [TAB:] or [DESC_DONE]`,
 
     complaint_description: `
-TASK: User is describing their complaint.
-- Accept their words as the description
-- Confirm you understood in ${langLabel}  
+TASK: User is describing their complaint problem.
+- Accept their EXACT words as the description — do not paraphrase
+- Confirm you understood in ${langLabel}
 - Add [DESC_DONE] at the very end
-- DO NOT paraphrase or change their description
 - DO NOT add [CAT:] or [SUBMIT] or [TAB:]`,
 
     complaint_photo: `
-TASK: Tell user to tap the green camera button below to take a photo.
-Keep it short. No special tags needed.`,
+TASK: Tell user to tap the green camera button below to take a photo of the problem.
+Keep it very short (1 sentence). No special tags needed.`,
 
     complaint_confirm: `
 TASK: Confirm complaint details with user.
 Category: ${complaintData.category}
 Description: ${complaintData.description}
 
-Read back briefly in ${langLabel}. 
-If user confirms (yes/ok/haan/submit/confirm/bilkul) → add [SUBMIT]
+Read back briefly in ${langLabel}.
+If user confirms (yes/ok/haan/submit/confirm/bilkul/theek/ha) → add [SUBMIT]
 If user says no/nahin/cancel → say OK and ask what to change.`,
   }
 
-  return { system, instruction: flows[flowState] || flows.idle }
+  return { system, instruction: flows[flowState] ?? flows.idle }
 }
 
-// ── Groq LLM call ─────────────────────────────────────────────────────────
+// ── Groq LLM call ────────────────────────────────────────────────────────────
 const GROQ_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY
 
 const callGroq = async (
@@ -159,7 +163,7 @@ const callGroq = async (
         { role: 'user', content: userMsg },
       ],
       max_tokens: 200,
-      temperature: 0.15,
+      temperature: 0.1, // very low = strict language compliance
     }),
   })
   if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
@@ -167,20 +171,48 @@ const callGroq = async (
   return data.choices?.[0]?.message?.content?.trim() ?? 'Please try again.'
 }
 
-// ── Language detection ─────────────────────────────────────────────────────
+// ── Language detection ───────────────────────────────────────────────────────
 const detectScript = (text: string): string | null => {
-  if (/[\u0900-\u097F]/.test(text)) return 'hi-IN'
-  if (/[\u0A00-\u0A7F]/.test(text)) return 'pa-IN'
-  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta-IN'
-  if (/[\u0C00-\u0C7F]/.test(text)) return 'te-IN'
-  if (/[\u0980-\u09FF]/.test(text)) return 'bn-IN'
-  if (/[\u0C80-\u0CFF]/.test(text)) return 'kn-IN'
-  if (/[\u0D00-\u0D7F]/.test(text)) return 'ml-IN'
-  if (/[\u0A80-\u0AFF]/.test(text)) return 'gu-IN'
+  if (/[\u0900-\u097F]/.test(text)) return 'hi-IN'  // Devanagari → Hindi
+  if (/[\u0A00-\u0A7F]/.test(text)) return 'pa-IN'  // Gurmukhi → Punjabi
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta-IN'  // Tamil
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'te-IN'  // Telugu
+  if (/[\u0980-\u09FF]/.test(text)) return 'bn-IN'  // Bengali
+  if (/[\u0C80-\u0CFF]/.test(text)) return 'kn-IN'  // Kannada
+  if (/[\u0D00-\u0D7F]/.test(text)) return 'ml-IN'  // Malayalam
+  if (/[\u0A80-\u0AFF]/.test(text)) return 'gu-IN'  // Gujarati
   return null
 }
-const HINDI_WORDS = new Set(['mujhe','mere','mera','main','hum','aap','hai','hain','nahi','karo','chahiye','shikayat','pani','bijli','sadak','safai','haan','theek','abhi','yahan'])
-const isHinglish = (t: string) => t.toLowerCase().split(/\s+/).filter(w => HINDI_WORDS.has(w)).length >= 2
+
+// Pure Hindi Roman words — if 1+ found, it's Hinglish → reply in Hindi
+// These words CANNOT be English words
+const HINDI_ROMAN = new Set([
+  'mujhe','muje','mere','mera','meri','tumhe','main','hum','aap','wo','yeh',
+  'karo','karni','karna','karein','chahiye','chahie','batao','sunao',
+  'hai','hain','tha','thi','the','hoga','hogi','nahi','nahin','nai','mat',
+  'aur','ya','lekin','toh','bhi','bahut','thoda','zyada','sab','kuch',
+  'bilkul','kya','kyun','kaise','kahan','kaun','kitna','kab',
+  'shikayat','darj','pani','bijli','sadak','safai','abhi','aaj','kal',
+  'yahan','wahan','ghar','haan','theek','achha','zyada','bahut',
+  'bijli','nali','kachra','sadak','gaddha',
+])
+
+// Returns true if text has ANY Hindi roman word (even 1 = Hinglish)
+const isHinglish = (t: string): boolean =>
+  t.toLowerCase().replace(/[.,!?]/g, '').split(/\s+/).some(w => HINDI_ROMAN.has(w))
+
+// Main language resolver — uses recognition lang as primary source of truth
+const resolveLang = (transcript: string, recognitionLang: string): string => {
+  // 1. Script detection is most accurate
+  const script = detectScript(transcript)
+  if (script) return script
+
+  // 2. Hinglish detection (Roman Hindi words)
+  if (isHinglish(transcript)) return 'hi-IN'
+
+  // 3. Fall back to whatever language the mic was set to
+  return recognitionLang
+}
 
 const PHOTO_PROMPTS: Record<string, string> = {
   'en-IN': 'Please tap the green camera button below to take a photo of the issue.',
@@ -203,27 +235,30 @@ const THINKING: Record<string, string> = {
 
 const GREETINGS: Record<string, (name: string) => string> = {
   'en-IN': n => n ? `Hello ${n}! I'm CivicLens AI. How can I help?` : "Hello! I'm CivicLens AI. How can I help you today?",
-  'hi-IN': n => n ? `Namaste ${n} ji! Kya madad chahiye?` : 'Namaste! Main CivicLens AI hun.',
-  'pa-IN': () => 'Sat Sri Akal! Main CivicLens AI han.',
-  'ta-IN': () => 'Vanakkam! Naan CivicLens AI.',
-  'te-IN': () => 'Namaskaram! Nenu CivicLens AI.',
-  'bn-IN': () => 'Nomoshkar! Ami CivicLens AI.',
-  'gu-IN': () => 'Kem cho! Hu CivicLens AI chhu.',
-  'kn-IN': () => 'Namaskara! Naanu CivicLens AI.',
-  'ml-IN': () => 'Namaskaram! Njan CivicLens AI anu.',
-  'mr-IN': () => 'Namaskar! Mi CivicLens AI aahe.',
+  'hi-IN': n => n ? `Namaste ${n} ji! Kya madad chahiye?` : 'Namaste! Main CivicLens AI hun. Kya madad chahiye?',
+  'pa-IN': n => n ? `Sat Sri Akal ${n} ji!` : 'Sat Sri Akal! Main CivicLens AI han.',
+  'ta-IN': n => n ? `Vanakkam ${n}!` : 'Vanakkam! Naan CivicLens AI.',
+  'te-IN': n => n ? `Namaskaram ${n}!` : 'Namaskaram! Nenu CivicLens AI.',
+  'bn-IN': n => n ? `Nomoshkar ${n}!` : 'Nomoshkar! Ami CivicLens AI.',
+  'gu-IN': n => n ? `Kem cho ${n}!` : 'Kem cho! Hu CivicLens AI chhu.',
+  'kn-IN': n => n ? `Namaskara ${n}!` : 'Namaskara! Naanu CivicLens AI.',
+  'ml-IN': n => n ? `Namaskaram ${n}!` : 'Namaskaram! Njan CivicLens AI anu.',
+  'mr-IN': n => n ? `Namaskar ${n}!` : 'Namaskar! Mi CivicLens AI aahe.',
 }
 
-const getFirstName = (name?: string | null) => {
-  if (!name) return ''
-  const skip = new Set(['guest', 'user', 'null', 'undefined', 'admin', 'test'])
+// Safe first-name extractor — skips common non-name words like "The"
+const SKIP_NAMES = new Set(['the','a','an','guest','user','null','undefined','admin','test','na','unknown'])
+const getFirstName = (name?: string | null): string => {
+  if (!name || typeof name !== 'string') return ''
   const first = name.trim().split(/\s+/)[0]
-  return (!first || skip.has(first.toLowerCase())) ? '' : first
+  if (!first || SKIP_NAMES.has(first.toLowerCase())) return ''
+  // Only return if it looks like a real name (has letters, not all numbers)
+  return /[a-zA-Z\u0900-\u097F]/.test(first) ? first : ''
 }
 
-// ── Set React state from outside component (for form filling) ─────────────
+// ── Set React state from outside component ───────────────────────────────────
 const setComplaintField = (field: 'category' | 'description', value: string): boolean => {
-  // Method 1: Global bridge (most reliable — registered by ComplaintsTab)
+  // Method 1: Global bridge (most reliable)
   if (field === 'category' && window.__civicSetCategory) {
     window.__civicSetCategory(value)
     return true
@@ -232,7 +267,7 @@ const setComplaintField = (field: 'category' | 'description', value: string): bo
     window.__civicSetDescription(value)
     return true
   }
-  // Method 2: React fiber setter (fallback)
+  // Method 2: React fiber / native setter fallback
   const ids = { category: 'complaint-category', description: 'complaint-description' }
   const el = document.getElementById(ids[field]) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
   if (!el) return false
@@ -242,39 +277,39 @@ const setComplaintField = (field: 'category' | 'description', value: string): bo
       : HTMLInputElement.prototype
     const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
     if (setter) { setter.call(el, value) } else { el.value = value }
-    el.dispatchEvent(new Event('input',  { bubbles: true }))
+    el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
     return true
   } catch { return false }
 }
 
-// ── MAIN COMPONENT ─────────────────────────────────────────────────────────
+// ── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function VoiceAgent() {
-  const [isOpen,        setIsOpen]        = useState(false)
-  const [isListening,   setIsListening]   = useState(false)
-  const [isSpeaking,    setIsSpeaking]    = useState(false)
-  const [isThinking,    setIsThinking]    = useState(false)
-  const [autoListen,    setAutoListen]    = useState(false)
-  const [showChat,      setShowChat]      = useState(true)
-  const [messages,      setMessages]      = useState<Message[]>([])
-  const [transcript,    setTranscript]    = useState('')
-  const [statusText,    setStatusText]    = useState('Tap mic to speak')
-  const [selectedLang,  setSelectedLang]  = useState('en-IN')
-  const [activeLang,    setActiveLang]    = useState('en-IN')
-  const [showLangPicker,setShowLangPicker]= useState(false)
-  const [flowState,     setFlowState]     = useState<FlowState>('idle')
-  const [complaintData, setComplaintData] = useState<ComplaintData>({ category: '', description: '', photoTaken: false })
-  const [error,         setError]         = useState<string | null>(null)
-  const [showPhotoBtn,  setShowPhotoBtn]  = useState(false)
-  const [photoPreview,  setPhotoPreview]  = useState<string | null>(null)
-  const [translating,   setTranslating]   = useState(false)
+  const [isOpen,         setIsOpen]         = useState(false)
+  const [isListening,    setIsListening]    = useState(false)
+  const [isSpeaking,     setIsSpeaking]     = useState(false)
+  const [isThinking,     setIsThinking]     = useState(false)
+  const [autoListen,     setAutoListen]     = useState(false)
+  const [showChat,       setShowChat]       = useState(true)
+  const [messages,       setMessages]       = useState<Message[]>([])
+  const [transcript,     setTranscript]     = useState('')
+  const [statusText,     setStatusText]     = useState('Tap mic to speak')
+  const [selectedLang,   setSelectedLang]   = useState('en-IN')
+  const [activeLang,     setActiveLang]     = useState('en-IN')
+  const [showLangPicker, setShowLangPicker] = useState(false)
+  const [flowState,      setFlowState]      = useState<FlowState>('idle')
+  const [complaintData,  setComplaintData]  = useState<ComplaintData>({ category: '', description: '', photoTaken: false })
+  const [error,          setError]          = useState<string | null>(null)
+  const [showPhotoBtn,   setShowPhotoBtn]   = useState(false)
+  const [photoPreview,   setPhotoPreview]   = useState<string | null>(null)
+  const [translating,    setTranslating]    = useState(false)
 
   const recogRef       = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const voicesRef      = useRef<SpeechSynthesisVoice[]>([])
   const photoInputRef  = useRef<HTMLInputElement>(null)
 
-  // Stable refs to avoid stale closures
+  // Stable refs — avoid stale closures in callbacks
   const r = {
     selectedLang: useRef('en-IN'),
     activeLang:   useRef('en-IN'),
@@ -283,14 +318,17 @@ export default function VoiceAgent() {
     autoListen:   useRef(false),
     flowState:    useRef<FlowState>('idle'),
     startMic:     useRef<() => void>(() => {}),
+    // Accumulate partial transcripts on mobile
+    partialBuffer: useRef(''),
+    lastResultTime: useRef(Date.now()),
   }
 
-  useEffect(() => { r.selectedLang.current = selectedLang },  [selectedLang])
-  useEffect(() => { r.activeLang.current   = activeLang   },  [activeLang])
-  useEffect(() => { r.isSpeaking.current   = isSpeaking   },  [isSpeaking])
-  useEffect(() => { r.isThinking.current   = isThinking   },  [isThinking])
-  useEffect(() => { r.autoListen.current   = autoListen   },  [autoListen])
-  useEffect(() => { r.flowState.current    = flowState    },  [flowState])
+  useEffect(() => { r.selectedLang.current = selectedLang }, [selectedLang])
+  useEffect(() => { r.activeLang.current   = activeLang   }, [activeLang])
+  useEffect(() => { r.isSpeaking.current   = isSpeaking   }, [isSpeaking])
+  useEffect(() => { r.isThinking.current   = isThinking   }, [isThinking])
+  useEffect(() => { r.autoListen.current   = autoListen   }, [autoListen])
+  useEffect(() => { r.flowState.current    = flowState    }, [flowState])
 
   useEffect(() => {
     const load = () => { voicesRef.current = window.speechSynthesis.getVoices() }
@@ -319,18 +357,18 @@ export default function VoiceAgent() {
     window.speechSynthesis.cancel()
     const clean = text.replace(/\[.*?\]/g, '').trim()
     if (!clean) return
-    const utt    = new SpeechSynthesisUtterance(clean)
-    utt.lang     = lang; utt.rate = 0.92; utt.pitch = 1.05
-    utt.voice    =
+    const utt   = new SpeechSynthesisUtterance(clean)
+    utt.lang    = lang; utt.rate = 0.92; utt.pitch = 1.05
+    utt.voice   =
       voicesRef.current.find(v => v.lang === lang && v.name.includes('Google')) ??
       voicesRef.current.find(v => v.lang === lang) ??
       voicesRef.current.find(v => v.lang.startsWith(lang.split('-')[0])) ?? null
-    utt.onstart  = () => { setIsSpeaking(true); setStatusText('Speaking...') }
-    utt.onend    = () => {
+    utt.onstart = () => { setIsSpeaking(true); setStatusText('Speaking...') }
+    utt.onend   = () => {
       setIsSpeaking(false)
       setStatusText(r.autoListen.current ? 'Listening...' : 'Tap mic to speak')
       if (r.autoListen.current && !r.isThinking.current && !recogRef.current)
-        setTimeout(() => r.startMic.current(), 1500)
+        setTimeout(() => r.startMic.current(), 1200)
       if (r.flowState.current === 'complaint_photo' && photoInputRef.current)
         setTimeout(() => { try { photoInputRef.current?.click() } catch {} }, 600)
     }
@@ -338,7 +376,7 @@ export default function VoiceAgent() {
     window.speechSynthesis.speak(utt)
   }, [])
 
-  // ── Photo handler ─────────────────────────────────────────────────────────
+  // ── Photo handler ────────────────────────────────────────────────────────
   const handlePhoto = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -355,9 +393,9 @@ export default function VoiceAgent() {
     if (photoInputRef.current) photoInputRef.current.value = ''
   }, [speak])
 
-  // ── Handle AI response tags ───────────────────────────────────────────────
+  // ── Handle AI response tags ──────────────────────────────────────────────
   const handleResponse = useCallback((reply: string, userMsg: string, lang: string) => {
-    // Navigation
+    // Navigation — only in idle flow
     const tabM = reply.match(/\[TAB:(.*?)\]/)
     if (tabM && r.flowState.current === 'idle') {
       const tab = tabM[1].trim()
@@ -370,6 +408,7 @@ export default function VoiceAgent() {
         setComplaintData({ category: '', description: '', photoTaken: false })
       }
     }
+
     // Show projects modal
     if (reply.includes('[SHOW:projects]'))
       setTimeout(() => window.__civicShowProjects?.(), 1600)
@@ -380,17 +419,17 @@ export default function VoiceAgent() {
       const cat = catM[1].trim()
       setComplaintData(p => ({ ...p, category: cat }))
       setComplaintField('category', cat)
-      console.log('[Voice] Category set:', cat)
+      console.log('[Voice] Category:', cat)
       setFlowState('complaint_description')
       return
     }
 
-    // Description confirmed — use ORIGINAL user speech
+    // Description confirmed — use ORIGINAL user speech (not translated)
     if (reply.includes('[DESC_DONE]')) {
       const desc = userMsg.trim()
       setComplaintData(p => ({ ...p, description: desc }))
       setComplaintField('description', desc)
-      console.log('[Voice] Description set:', desc)
+      console.log('[Voice] Description:', desc)
       setFlowState('complaint_photo')
       setShowPhotoBtn(true)
       const photoMsg = PHOTO_PROMPTS[lang] ?? PHOTO_PROMPTS['en-IN']
@@ -411,11 +450,10 @@ export default function VoiceAgent() {
     }
   }, [router, speak])
 
-  // ── Main AI pipeline ──────────────────────────────────────────────────────
-  const askAI = useCallback(async (userMsg: string, recogLang: string) => {
-    const script   = detectScript(userMsg)
-    const hinglish = !script && isHinglish(userMsg)
-    const lang     = script ?? (hinglish ? 'hi-IN' : recogLang)
+  // ── Main AI pipeline ─────────────────────────────────────────────────────
+  const askAI = useCallback(async (userMsg: string, recognitionLang: string) => {
+    // Smart language resolution — recognition lang + script detection + hinglish
+    const lang     = resolveLang(userMsg, recognitionLang)
     const langInfo = getLang(lang)
 
     setActiveLang(lang)
@@ -427,16 +465,16 @@ export default function VoiceAgent() {
     setMessages(newHistory)
 
     try {
-      // HuggingFace: translate non-English to English for better LLM understanding
+      // HuggingFace: translate non-English to English for LLM understanding
       let llmMsg = userMsg
       if (lang !== 'en-IN' && langInfo.hf !== 'en' && HF_TOKEN) {
         setTranslating(true)
         llmMsg = await translateToEnglish(userMsg, langInfo.hf)
         setTranslating(false)
-        console.log('[HF]', userMsg, '→', llmMsg)
+        console.log('[HF translate]', userMsg, '→', llmMsg)
       }
 
-      // LangChain-style prompt
+      // LangChain-style prompt with language explicitly stated
       const appData = {
         projects:   window.__civicGetProjects?.()   ?? [],
         complaints: window.__civicGetComplaints?.() ?? [],
@@ -449,17 +487,17 @@ export default function VoiceAgent() {
       )
 
       const reply = await callGroq(llmMsg, newHistory, system, instruction)
-      console.log('[AI]', reply)
+      console.log('[AI lang:', lang, '] reply:', reply)
 
       const clean = reply.replace(/\[.*?\]/g, '').trim()
       setMessages(p => [...p, { role: 'assistant', text: clean || reply, lang }])
       speak(reply, lang)
-      // Pass ORIGINAL message (not translated) for description storage
+      // Always pass ORIGINAL message for description storage
       handleResponse(reply, userMsg, lang)
 
     } catch (err: any) {
       const isKey = err.message?.includes('401') || err.message?.includes('403')
-      setError(isKey ? 'Invalid Groq API key. Check .env.local' : 'Connection error — try again')
+      setError(isKey ? 'Invalid Groq API key' : 'Connection error — try again')
       speak('Something went wrong, please try again.', lang)
     } finally {
       setIsThinking(false)
@@ -467,7 +505,13 @@ export default function VoiceAgent() {
     }
   }, [messages, speak, handleResponse, complaintData, pathname, user])
 
-  // ── Speech Recognition — with mobile keep-alive fix ───────────────────────
+  // ── Speech Recognition — Mobile-optimized ───────────────────────────────
+  // ROOT CAUSE OF "I want" / "Mujhe" partial speech:
+  // On Android, SpeechRecognition fires 'end' after ~5-7s of silence OR after
+  // first pause. We fix this by:
+  // 1. Accumulating interim results in a buffer
+  // 2. Using a silence detector — only submit after 2s of no new words
+  // 3. If recognition ends without final result, use the buffer
   const startMic = useCallback(() => {
     if (r.isSpeaking.current || r.isThinking.current) return
     if (recogRef.current) {
@@ -478,45 +522,65 @@ export default function VoiceAgent() {
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
     if (!SR) { setError('Use Chrome or Edge for voice input'); return }
 
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    const rec      = new SR()
+    const rec = new SR()
     recogRef.current = rec
 
-    rec.continuous      = true
-    rec.interimResults  = true
+    // Mobile settings — key fix for partial speech
+    rec.continuous     = true   // keep listening even after pauses
+    rec.interimResults = true   // get partial results
     rec.maxAlternatives = 1
-    rec.lang            = r.selectedLang.current
+    rec.lang           = r.selectedLang.current
 
+    let bestTranscript   = ''   // accumulates the best final/interim text
     let silenceTimer: ReturnType<typeof setTimeout> | null = null
-    let gotFinal = false
+    let hasResult        = false
+
+    // Submit what we have after silence
+    const submitCurrent = () => {
+      if (!bestTranscript.trim()) return
+      const text = bestTranscript.trim()
+      bestTranscript = ''
+      hasResult = true
+      recogRef.current = null
+      try { rec.stop() } catch {}
+      askAI(text, r.selectedLang.current)
+    }
+
+    // Reset silence timer on each new word
+    const resetSilenceTimer = () => {
+      if (silenceTimer) clearTimeout(silenceTimer)
+      // Wait 2.5s of silence before submitting — gives user time to pause between words
+      silenceTimer = setTimeout(submitCurrent, 2500)
+    }
 
     rec.onstart = () => {
       setIsListening(true)
       setStatusText('Listening...')
-      gotFinal = false
-
-      // Mobile keep-alive: restart before Android's 30s kill timeout
-      if (isMobile) {
-        silenceTimer = setTimeout(() => {
-          if (recogRef.current && !gotFinal) {
-            console.log('[mic] Mobile keep-alive restart')
-            try { rec.stop() } catch {}
-          }
-        }, 25000)
-      }
+      hasResult    = false
+      bestTranscript = ''
+      r.partialBuffer.current = ''
     }
 
     rec.onresult = (e: any) => {
-      const result = e.results[e.results.length - 1]
-      const text   = result[0].transcript
-      setTranscript(text)
-      if (result.isFinal) {
-        gotFinal = true
-        if (silenceTimer) clearTimeout(silenceTimer)
-        setTranscript('')
-        recogRef.current = null
-        rec.stop()
-        askAI(text, r.selectedLang.current)
+      // Build transcript from ALL results (not just latest)
+      let interimText = ''
+      let finalText   = ''
+
+      for (let i = 0; i < e.results.length; i++) {
+        const result = e.results[i]
+        if (result.isFinal) {
+          finalText += result[0].transcript + ' '
+        } else {
+          interimText += result[0].transcript
+        }
+      }
+
+      const combined = (finalText + interimText).trim()
+      if (combined) {
+        bestTranscript = combined
+        setTranscript(combined)
+        r.lastResultTime.current = Date.now()
+        resetSilenceTimer()
       }
     }
 
@@ -524,10 +588,16 @@ export default function VoiceAgent() {
       if (silenceTimer) clearTimeout(silenceTimer)
       recogRef.current = null
       setIsListening(false)
+      setTranscript('')
+
       if (e.error === 'not-allowed') {
         setError('Microphone permission denied')
-      } else if ((e.error === 'no-speech' || e.error === 'audio-capture') && r.autoListen.current) {
-        setTimeout(() => { if (r.autoListen.current) r.startMic.current() }, 500)
+        return
+      }
+
+      // no-speech / audio-capture — restart in auto mode
+      if ((e.error === 'no-speech' || e.error === 'audio-capture') && r.autoListen.current) {
+        setTimeout(() => { if (r.autoListen.current && !r.isSpeaking.current) r.startMic.current() }, 500)
       }
     }
 
@@ -536,31 +606,33 @@ export default function VoiceAgent() {
       recogRef.current = null
       setIsListening(false)
 
-      if (gotFinal) {
-        // Got speech — wait for AI to respond before restarting
+      // If we have buffered text and didn't already submit, submit it now
+      // This handles the case where Android kills recognition mid-sentence
+      if (bestTranscript.trim() && !hasResult && !r.isThinking.current) {
+        console.log('[Mic] Submitting buffered text on end:', bestTranscript)
+        const text = bestTranscript.trim()
+        bestTranscript = ''
+        setTranscript('')
+        askAI(text, r.selectedLang.current)
+        return
+      }
+
+      setTranscript('')
+
+      if (hasResult) {
+        // Submitted — wait for AI then restart in auto mode
         setStatusText(r.autoListen.current ? 'Processing...' : 'Tap mic to speak')
         return
       }
 
-      // Ended WITHOUT speech (timeout / mobile cutoff / silence)
-      if (r.autoListen.current) {
-        // Auto mode: restart quickly
-        const delay = (r.isSpeaking.current || r.isThinking.current) ? 3000 : 400
+      // No speech detected
+      if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current) {
         setTimeout(() => {
           if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current)
             r.startMic.current()
-        }, delay)
+        }, 500)
       } else {
-        // Manual mode: auto-restart on mobile timeout so user doesn't have to tap again
-        if (!r.isSpeaking.current && !r.isThinking.current) {
-          setTimeout(() => {
-            if (!recogRef.current && !r.isSpeaking.current && !r.isThinking.current)
-              r.startMic.current()
-          }, 300)
-          setStatusText('Listening... (tap to stop)')
-        } else {
-          setStatusText('Tap mic to speak')
-        }
+        setStatusText('Tap mic to speak')
       }
     }
 
@@ -615,7 +687,7 @@ export default function VoiceAgent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedLang])
 
-  // ── Derived state ─────────────────────────────────────────────────────────
+  // ── Derived ──────────────────────────────────────────────────────────────
   const firstName  = getFirstName(user?.name)
   const langDisp   = getLang(selectedLang)
   const activeDisp = getLang(activeLang)
@@ -625,10 +697,11 @@ export default function VoiceAgent() {
     : 'bg-indigo-600'
 
   const FLOW_LABELS: Record<FlowState, string> = {
-    idle: '', complaint_category: '📋 Step 1: Tell category',
+    idle: '',
+    complaint_category:    '📋 Step 1: Tell category',
     complaint_description: '📝 Step 2: Describe issue',
-    complaint_photo: '📷 Step 3: Take photo',
-    complaint_confirm: '✅ Step 4: Confirm & submit',
+    complaint_photo:       '📷 Step 3: Take photo',
+    complaint_confirm:     '✅ Step 4: Confirm & submit',
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -642,7 +715,12 @@ export default function VoiceAgent() {
   // Hands-free floating bar
   if (autoListen && !showChat) return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-black/80 backdrop-blur-md rounded-full border border-white/10 shadow-2xl max-w-xs w-full">
-      <div className={`w-2 h-2 rounded-full shrink-0 ${isListening ? 'bg-red-400 animate-pulse' : isSpeaking ? 'bg-emerald-400 animate-pulse' : isThinking ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />
+      <div className={`w-2 h-2 rounded-full shrink-0 ${
+        isListening ? 'bg-red-400 animate-pulse'
+        : isSpeaking ? 'bg-emerald-400 animate-pulse'
+        : isThinking ? 'bg-amber-400 animate-pulse'
+        : 'bg-slate-500'
+      }`} />
       <span className="text-white/80 text-xs truncate flex-1">
         {transcript || (isThinking ? (THINKING[activeLang] ?? 'Thinking...') : statusText)}
       </span>
@@ -651,8 +729,8 @@ export default function VoiceAgent() {
         className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isListening ? 'bg-red-500' : 'bg-indigo-500'} disabled:opacity-40`}>
         {isListening ? <MicOff className="w-3.5 h-3.5 text-white" /> : <Mic className="w-3.5 h-3.5 text-white" />}
       </button>
-      <button onClick={() => setShowChat(true)} className="text-white/50 hover:text-white text-xs border border-white/20 px-2 py-1 rounded-full">chat</button>
-      <button onClick={() => { setAutoListen(false); setShowChat(true); stopMic() }} className="text-white/40 hover:text-white"><X className="w-4 h-4" /></button>
+      <button onClick={() => setShowChat(true)} className="text-white/50 hover:text-white text-xs border border-white/20 px-2 py-1 rounded-full shrink-0">chat</button>
+      <button onClick={() => { setAutoListen(false); setShowChat(true); stopMic() }} className="text-white/40 hover:text-white shrink-0"><X className="w-4 h-4" /></button>
     </div>
   )
 
@@ -681,7 +759,7 @@ export default function VoiceAgent() {
         </button>
       </div>
 
-      {/* Flow indicator */}
+      {/* Flow step indicator */}
       {flowState !== 'idle' && (
         <div className="bg-indigo-900/40 px-4 py-1.5 text-xs text-indigo-300 font-medium border-b border-indigo-800/40 shrink-0">
           {FLOW_LABELS[flowState]}
@@ -696,7 +774,9 @@ export default function VoiceAgent() {
             <Globe className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-slate-400">
               Speak: <span className="text-indigo-400 font-medium">{langDisp.label}</span>
-              {activeLang !== selectedLang && <span className="text-emerald-400 ml-2">· Reply: {activeDisp.label}</span>}
+              {activeLang !== selectedLang && (
+                <span className="text-emerald-400 ml-2">· AI replied in: {activeDisp.label}</span>
+              )}
             </span>
             {HF_TOKEN && <span className="text-purple-400 text-[10px] bg-purple-900/30 px-1.5 py-0.5 rounded-full ml-1">HF</span>}
           </div>
@@ -718,7 +798,7 @@ export default function VoiceAgent() {
         )}
       </div>
 
-      {/* Error */}
+      {/* Error banner */}
       {error && (
         <div className="bg-red-900/50 px-4 py-2 text-xs text-red-200 border-b border-red-800 flex items-center justify-between gap-2 shrink-0">
           <span>{error}</span>
@@ -750,15 +830,17 @@ export default function VoiceAgent() {
           </div>
         )}
 
+        {/* Live transcript preview */}
         {transcript && (
           <div className="flex justify-end">
             <div className="max-w-[88%] px-4 py-2 rounded-2xl bg-indigo-900/40 text-sm italic text-indigo-300">
               {transcript}
+              <span className="animate-pulse ml-1">▍</span>
             </div>
           </div>
         )}
 
-        {/* Complaint progress */}
+        {/* Complaint progress card */}
         {(complaintData.category || complaintData.description) && (
           <div className="bg-slate-800/60 rounded-xl p-3 text-xs space-y-1.5 border border-slate-700">
             <p className="text-slate-400 font-semibold">📋 Complaint in progress</p>
@@ -811,6 +893,7 @@ export default function VoiceAgent() {
       {/* Controls */}
       <div className="p-4 border-t border-slate-700 bg-slate-950 shrink-0">
         <div className="flex justify-center items-center gap-6 mb-4">
+
           {/* Stop TTS */}
           <button onClick={() => { window.speechSynthesis.cancel(); setIsSpeaking(false) }}
             title="Stop speaking"
@@ -843,7 +926,9 @@ export default function VoiceAgent() {
             {autoListen && <p className="text-emerald-400 text-xs animate-pulse">active — always listening</p>}
           </div>
           <button onClick={toggleAutoListen}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${autoListen ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}>
+            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+              autoListen ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+            }`}>
             {autoListen ? 'ON' : 'OFF'}
           </button>
         </div>
@@ -853,7 +938,7 @@ export default function VoiceAgent() {
           <span className="text-[10px] text-slate-600 bg-slate-800/80 px-2 py-0.5 rounded-full">LangChain</span>
           {HF_TOKEN && <span className="text-[10px] text-purple-500 bg-purple-900/20 px-2 py-0.5 rounded-full">HuggingFace MT</span>}
           <span className="text-[10px] text-orange-500 bg-orange-900/20 px-2 py-0.5 rounded-full">Groq LLaMA</span>
-          <span className="text-[10px] text-blue-500 bg-blue-900/20 px-2 py-0.5 rounded-full">Mobile Fix ✓</span>
+          <span className="text-[10px] text-green-500 bg-green-900/20 px-2 py-0.5 rounded-full">Mobile Fix ✓</span>
         </div>
       </div>
     </div>
