@@ -17,7 +17,7 @@ declare global {
     __civicShowProjects?: () => void
     __civicSetCategory?: (cat: string) => void
     __civicSetDescription?: (desc: string) => void
-    __civicSetPhoto?: (file: File) => void   // ← expose this in your complaint form
+    __civicSetPhoto?: (file: File) => void
   }
 }
 
@@ -54,6 +54,31 @@ const translateToEnglish = async (text: string, srcLang: string): Promise<string
     const data = await res.json()
     return data?.[0]?.translation_text || text
   } catch { return text }
+}
+
+// ── BUG FIX #1 helper: remove repeated speech recognition artefacts ──────────
+// Chrome's continuous mode sometimes emits the growing sentence as interim
+// results, producing: "bijali  bijali Nahin  bijali Nahin a rahi ..."
+// Strategy: find the longest suffix that appears earlier in the string —
+// that suffix is the "complete" sentence; keep only it.
+const deduplicateTranscript = (text: string): string => {
+  const t = text.trim()
+  if (!t) return t
+  const words = t.split(/\s+/)
+  if (words.length < 4) return t
+
+  // Try lengths from half the array down to 3
+  for (let len = Math.floor(words.length / 2); len >= 3; len--) {
+    const suffix = words.slice(-len).join(' ')
+    const prefix = words.slice(0, -len).join(' ')
+    if (prefix.toLowerCase().includes(suffix.toLowerCase())) {
+      return suffix  // the last occurrence is the full intended phrase
+    }
+  }
+
+  // Fallback: collapse consecutive duplicate words
+  // "bijali bijali Nahin" → "bijali Nahin"
+  return words.filter((w, i) => i === 0 || w.toLowerCase() !== words[i - 1].toLowerCase()).join(' ')
 }
 
 // ── LangChain-style prompt builder ───────────────────────────────────────────
@@ -249,12 +274,10 @@ const getFirstName = (name?: string | null): string => {
 // ── Set React state from outside component ───────────────────────────────────
 const setComplaintField = (field: 'category' | 'description', value: string): boolean => {
   if (field === 'category' && window.__civicSetCategory) {
-    window.__civicSetCategory(value)
-    return true
+    window.__civicSetCategory(value); return true
   }
   if (field === 'description' && window.__civicSetDescription) {
-    window.__civicSetDescription(value)
-    return true
+    window.__civicSetDescription(value); return true
   }
   const ids = { category: 'complaint-category', description: 'complaint-description' }
   const el = document.getElementById(ids[field]) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
@@ -272,44 +295,29 @@ const setComplaintField = (field: 'category' | 'description', value: string): bo
 }
 
 // ── BUG FIX #2: Sync photo to the real complaint form ───────────────────────
-// 3 methods tried in order:
-//   1. window.__civicSetPhoto bridge (expose in your complaint form — most reliable)
-//   2. DataTransfer inject into the form's file input
-//   3. Custom DOM event 'civicPhotoSelected' — complaint form can addEventListener for this
+// Priority order:
+//   1. window.__civicSetPhoto — exposed by ComplaintsTab (most reliable, base64)
+//   2. DataTransfer inject into a file input in the form
+//   3. Custom DOM event 'civicPhotoSelected' as last resort
 const syncPhotoToForm = (file: File): void => {
-  // Method 1 — global bridge
   if (window.__civicSetPhoto) {
     window.__civicSetPhoto(file)
     return
   }
-
-  // Method 2 — DataTransfer inject (try common IDs, skip our own hidden input)
-  const selectors = [
-    '#complaint-photo',
-    '#photo-evidence',
-    '#photo-input',
-    'input[type="file"][accept*="image"]',
-  ]
+  const selectors = ['#complaint-photo','#photo-evidence','#photo-input','input[type="file"][accept*="image"]']
   for (const sel of selectors) {
     const el = document.querySelector(sel) as HTMLInputElement | null
     if (el && el.id !== 'civic-photo-voice') {
       try {
-        const dt = new DataTransfer()
-        dt.items.add(file)
+        const dt = new DataTransfer(); dt.items.add(file)
         el.files = dt.files
         el.dispatchEvent(new Event('change', { bubbles: true }))
         el.dispatchEvent(new Event('input',  { bubbles: true }))
-        console.log('[Voice] Photo synced via DataTransfer to', sel)
         return
-      } catch (err) {
-        console.warn('[Voice] DataTransfer inject failed for', sel, err)
-      }
+      } catch {}
     }
   }
-
-  // Method 3 — custom event fallback
   window.dispatchEvent(new CustomEvent('civicPhotoSelected', { detail: { file } }))
-  console.log('[Voice] civicPhotoSelected event dispatched — make sure complaint form listens for it')
 }
 
 // ── MAIN COMPONENT ───────────────────────────────────────────────────────────
@@ -346,7 +354,6 @@ export default function VoiceAgent() {
     autoListen:     useRef(false),
     flowState:      useRef<FlowState>('idle'),
     startMic:       useRef<() => void>(() => {}),
-    partialBuffer:  useRef(''),
     lastResultTime: useRef(Date.now()),
   }
 
@@ -402,7 +409,7 @@ export default function VoiceAgent() {
     window.speechSynthesis.speak(utt)
   }, [])
 
-  // ── BUG FIX #2: Photo handler ────────────────────────────────────────────
+  // ── Photo handler ─────────────────────────────────────────────────────────
   const handlePhoto = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -412,7 +419,7 @@ export default function VoiceAgent() {
     setShowPhotoBtn(false)
     setFlowState('complaint_confirm')
 
-    // ✅ FIXED: Push photo to the actual complaint form
+    // ✅ Push photo to the actual complaint form via bridge
     syncPhotoToForm(file)
 
     const lang = r.activeLang.current
@@ -447,16 +454,16 @@ export default function VoiceAgent() {
       const cat = catM[1].trim()
       setComplaintData(p => ({ ...p, category: cat }))
       setComplaintField('category', cat)
-      console.log('[Voice] Category:', cat)
       setFlowState('complaint_description')
       return
     }
 
     if (reply.includes('[DESC_DONE]')) {
-      const desc = userMsg.trim()
+      // ✅ BUG FIX #1: Deduplicate before storing description
+      const raw  = userMsg.trim()
+      const desc = deduplicateTranscript(raw)
       setComplaintData(p => ({ ...p, description: desc }))
       setComplaintField('description', desc)
-      console.log('[Voice] Description:', desc)
       setFlowState('complaint_photo')
       setShowPhotoBtn(true)
       const photoMsg = PHOTO_PROMPTS[lang] ?? PHOTO_PROMPTS['en-IN']
@@ -495,7 +502,6 @@ export default function VoiceAgent() {
         setTranslating(true)
         llmMsg = await translateToEnglish(userMsg, langInfo.hf)
         setTranslating(false)
-        console.log('[HF translate]', userMsg, '→', llmMsg)
       }
 
       const appData = {
@@ -510,8 +516,6 @@ export default function VoiceAgent() {
       )
 
       const reply = await callGroq(llmMsg, newHistory, system, instruction)
-      console.log('[AI lang:', lang, '] reply:', reply)
-
       const clean = reply.replace(/\[.*?\]/g, '').trim()
       setMessages(p => [...p, { role: 'assistant', text: clean || reply, lang }])
       speak(reply, lang)
@@ -527,7 +531,9 @@ export default function VoiceAgent() {
     }
   }, [messages, speak, handleResponse, complaintData, pathname, user])
 
-  // ── Speech Recognition — BUG FIX #1: e.resultIndex stops repetition ─────
+  // ── Speech Recognition ────────────────────────────────────────────────────
+  // FIX #1 applied: loop starts at e.resultIndex (not 0) so old results
+  // are never re-appended; deduplicateTranscript handles any remaining artefacts
   const startMic = useCallback(() => {
     if (r.isSpeaking.current || r.isThinking.current) return
     if (recogRef.current) {
@@ -540,14 +546,13 @@ export default function VoiceAgent() {
 
     const rec = new SR()
     recogRef.current = rec
-
     rec.continuous      = true
     rec.interimResults  = true
     rec.maxAlternatives = 1
     rec.lang            = r.selectedLang.current
 
-    let bestTranscript  = ''   // finalTranscript + current interim
-    let finalTranscript = ''   // ✅ only confirmed final segments
+    let bestTranscript  = ''
+    let finalTranscript = ''
     let silenceTimer: ReturnType<typeof setTimeout> | null = null
     let hasResult = false
 
@@ -559,7 +564,8 @@ export default function VoiceAgent() {
       hasResult = true
       recogRef.current = null
       try { rec.stop() } catch {}
-      askAI(text, r.selectedLang.current)
+      // ✅ deduplicate before sending to AI
+      askAI(deduplicateTranscript(text), r.selectedLang.current)
     }
 
     const resetSilenceTimer = () => {
@@ -570,31 +576,22 @@ export default function VoiceAgent() {
     rec.onstart = () => {
       setIsListening(true)
       setStatusText('Listening...')
-      hasResult       = false
-      bestTranscript  = ''
-      finalTranscript = ''
-      r.partialBuffer.current = ''
+      hasResult = false; bestTranscript = ''; finalTranscript = ''
     }
 
-    // ✅ BUG FIX #1: Start loop at e.resultIndex, not 0
-    // Previously looping from 0 re-appended old results every new event
+    // ✅ Start from e.resultIndex — never re-process old results
     rec.onresult = (e: any) => {
       let newFinal    = ''
       let interimText = ''
-
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          newFinal += e.results[i][0].transcript + ' '
-        } else {
-          interimText += e.results[i][0].transcript
-        }
+        if (e.results[i].isFinal) newFinal    += e.results[i][0].transcript + ' '
+        else                      interimText += e.results[i][0].transcript
       }
-
       if (newFinal) finalTranscript += newFinal
       bestTranscript = (finalTranscript + interimText).trim()
-
       if (bestTranscript) {
-        setTranscript(bestTranscript)
+        // Show deduplicated preview in transcript bar
+        setTranscript(deduplicateTranscript(bestTranscript))
         r.lastResultTime.current = Date.now()
         resetSilenceTimer()
       }
@@ -602,50 +599,26 @@ export default function VoiceAgent() {
 
     rec.onerror = (e: any) => {
       if (silenceTimer) clearTimeout(silenceTimer)
-      recogRef.current = null
-      setIsListening(false)
-      setTranscript('')
-
-      if (e.error === 'not-allowed') {
-        setError('Microphone permission denied')
-        return
-      }
-
-      if ((e.error === 'no-speech' || e.error === 'audio-capture') && r.autoListen.current) {
+      recogRef.current = null; setIsListening(false); setTranscript('')
+      if (e.error === 'not-allowed') { setError('Microphone permission denied'); return }
+      if ((e.error === 'no-speech' || e.error === 'audio-capture') && r.autoListen.current)
         setTimeout(() => { if (r.autoListen.current && !r.isSpeaking.current) r.startMic.current() }, 500)
-      }
     }
 
     rec.onend = () => {
       if (silenceTimer) clearTimeout(silenceTimer)
-      recogRef.current = null
-      setIsListening(false)
-
+      recogRef.current = null; setIsListening(false)
       if (bestTranscript.trim() && !hasResult && !r.isThinking.current) {
-        console.log('[Mic] Submitting buffered text on end:', bestTranscript)
-        const text = bestTranscript.trim()
-        bestTranscript  = ''
-        finalTranscript = ''
-        setTranscript('')
+        const text = deduplicateTranscript(bestTranscript.trim())
+        bestTranscript = ''; finalTranscript = ''; setTranscript('')
         askAI(text, r.selectedLang.current)
         return
       }
-
       setTranscript('')
-
-      if (hasResult) {
-        setStatusText(r.autoListen.current ? 'Processing...' : 'Tap mic to speak')
-        return
-      }
-
-      if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current) {
-        setTimeout(() => {
-          if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current)
-            r.startMic.current()
-        }, 500)
-      } else {
-        setStatusText('Tap mic to speak')
-      }
+      if (hasResult) { setStatusText(r.autoListen.current ? 'Processing...' : 'Tap mic to speak'); return }
+      if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current)
+        setTimeout(() => { if (r.autoListen.current && !r.isSpeaking.current && !r.isThinking.current) r.startMic.current() }, 500)
+      else setStatusText('Tap mic to speak')
     }
 
     try { rec.start() } catch { recogRef.current = null }
@@ -817,7 +790,6 @@ export default function VoiceAgent() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[88%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -842,8 +814,7 @@ export default function VoiceAgent() {
         {transcript && (
           <div className="flex justify-end">
             <div className="max-w-[88%] px-4 py-2 rounded-2xl bg-indigo-900/40 text-sm italic text-indigo-300">
-              {transcript}
-              <span className="animate-pulse ml-1">▍</span>
+              {transcript}<span className="animate-pulse ml-1">▍</span>
             </div>
           </div>
         )}
